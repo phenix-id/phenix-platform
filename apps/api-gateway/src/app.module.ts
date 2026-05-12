@@ -29,6 +29,7 @@ import { NotificationModule } from './notification/notification.module';
 import { GeoLocationModule } from './geo-location/geo-location.module';
 import { CommonConstants } from '@credebl/common/common.constant';
 import { CloudWalletModule } from './cloud-wallet/cloud-wallet.module';
+import { MarketplaceModule } from './marketplace/marketplace.module';
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { CloudWalletModule } from './cloud-wallet/cloud-wallet.module';
     NotificationModule,
     CacheModule.register({ store: redisStore, host: process.env.REDIS_HOST, port: process.env.REDIS_PORT }),
     GeoLocationModule,
-    CloudWalletModule
+    CloudWalletModule,
+    MarketplaceModule
   ],
   controllers: [AppController],
   providers: [AppService]
@@ -95,7 +97,9 @@ export class AppModule {
         'admin/user-login',
         'registry/organizations',
         'issue-credentials/national-id',
-        'labels/:id'
+        'labels/:id',
+        'marketplace/subscriptions/resolve',
+        'marketplace/webhook'
       )
       .forRoutes(AgentController, RevocationController);
   }

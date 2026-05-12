@@ -7,7 +7,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
-    "build:all": "rimraf dist && nest build api-gateway && nest build platform-service && nest build agent-service && nest build connection",
+    "build:all": "rimraf dist && nest build api-gateway && nest build platform-service && nest build agent-service && nest build connection && nest build marketplace",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "npx prisma migrate deploy --schema=./libs/prisma-service/prisma/schema.prisma & nest start",
     "start:dev": "nest start --watch",

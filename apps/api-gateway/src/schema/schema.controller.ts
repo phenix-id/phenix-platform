@@ -1,7 +1,32 @@
-import { Controller, Logger, Post, Body, HttpStatus, UseGuards, Get, Query, BadRequestException, Res, UseFilters, Param, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Logger,
+  Post,
+  Body,
+  HttpStatus,
+  UseGuards,
+  Get,
+  Query,
+  BadRequestException,
+  Res,
+  UseFilters,
+  Param,
+  ParseUUIDPipe
+} from '@nestjs/common';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable camelcase */
-import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiForbiddenResponse, ApiUnauthorizedResponse, ApiQuery, ApiExtraModels, ApiBody, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiUnauthorizedResponse,
+  ApiQuery,
+  ApiExtraModels,
+  ApiBody,
+  getSchemaPath
+} from '@nestjs/swagger';
 import { SchemaService } from './schema.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiResponseDto } from '../dtos/apiResponse.dto';
@@ -21,6 +46,9 @@ import { GenericSchemaDTO } from '../dtos/create-schema.dto';
 import { CustomExceptionFilter } from 'apps/api-gateway/common/exception-handler';
 import { CredDefSortFields, SortFields } from '@credebl/enum/enum';
 import { TrimStringParamPipe } from '@credebl/common/cast.helper';
+import { RequiresMarketplaceFeature } from '../marketplace/decorators/requires-marketplace-feature.decorator';
+import { MarketplaceEntitlementGuard } from '../marketplace/guards/marketplace-entitlement.guard';
+import { MarketplaceService } from '../marketplace/marketplace.service';
 
 @UseFilters(CustomExceptionFilter)
 @Controller('orgs')
@@ -29,8 +57,10 @@ import { TrimStringParamPipe } from '@credebl/common/cast.helper';
 @ApiUnauthorizedResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized', type: UnauthorizedErrorDto })
 @ApiForbiddenResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden', type: ForbiddenErrorDto })
 export class SchemaController {
-  constructor(private readonly appService: SchemaService
-  ) { }
+  constructor(
+    private readonly appService: SchemaService,
+    private readonly marketplaceService: MarketplaceService
+  ) {}
   private readonly logger = new Logger('SchemaController');
 
   @Get('/:orgId/schemas/:schemaId')
@@ -43,10 +73,17 @@ export class SchemaController {
   @ApiResponse({ status: HttpStatus.OK, description: 'Success', type: ApiResponseDto })
   async getSchemaById(
     @Res() res: Response,
-    @Param('orgId', new ParseUUIDPipe({exceptionFactory: (): Error => { throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId); }})) orgId: string,    
+    @Param(
+      'orgId',
+      new ParseUUIDPipe({
+        exceptionFactory: (): Error => {
+          throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId);
+        }
+      })
+    )
+    orgId: string,
     @Param('schemaId', TrimStringParamPipe) schemaId: string
   ): Promise<Response> {
-
     if (!schemaId) {
       throw new BadRequestException(ResponseMessages.schema.error.invalidSchemaId);
     }
@@ -73,12 +110,20 @@ export class SchemaController {
   @Roles(OrgRoles.OWNER, OrgRoles.ADMIN, OrgRoles.ISSUER, OrgRoles.VERIFIER, OrgRoles.MEMBER)
   @UseGuards(AuthGuard('jwt'), OrgRolesGuard)
   async getcredDeffListBySchemaId(
-    @Param('orgId', new ParseUUIDPipe({exceptionFactory: (): Error => { throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId); }})) orgId: string,    
+    @Param(
+      'orgId',
+      new ParseUUIDPipe({
+        exceptionFactory: (): Error => {
+          throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId);
+        }
+      })
+    )
+    orgId: string,
     @Param('schemaId') schemaId: string,
     @Query() getCredentialDefinitionBySchemaIdDto: GetCredentialDefinitionBySchemaIdDto,
     @Res() res: Response,
-    @User() user: IUserRequestInterface): Promise<Response> {
-
+    @User() user: IUserRequestInterface
+  ): Promise<Response> {
     if (!schemaId) {
       throw new BadRequestException(ResponseMessages.schema.error.invalidSchemaId);
     }
@@ -86,13 +131,16 @@ export class SchemaController {
     getCredentialDefinitionBySchemaIdDto.schemaId = schemaId;
     getCredentialDefinitionBySchemaIdDto.orgId = orgId;
 
-    const credentialDefinitionList = await this.appService.getcredDefListBySchemaId(getCredentialDefinitionBySchemaIdDto, user);
+    const credentialDefinitionList = await this.appService.getcredDefListBySchemaId(
+      getCredentialDefinitionBySchemaIdDto,
+      user
+    );
     const finalResponse: IResponse = {
       statusCode: HttpStatus.OK,
       message: ResponseMessages.schema.success.fetch,
       data: credentialDefinitionList
     };
-    
+
     return res.status(HttpStatus.OK).json(finalResponse);
   }
 
@@ -111,11 +159,18 @@ export class SchemaController {
   @ApiResponse({ status: HttpStatus.OK, description: 'Success', type: ApiResponseDto })
   async getSchemas(
     @Query() getAllSchemaDto: GetAllSchemaDto,
-    @Param('orgId', new ParseUUIDPipe({exceptionFactory: (): Error => { throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId); }})) orgId: string,    
+    @Param(
+      'orgId',
+      new ParseUUIDPipe({
+        exceptionFactory: (): Error => {
+          throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId);
+        }
+      })
+    )
+    orgId: string,
     @Res() res: Response,
     @User() user: IUserRequestInterface
   ): Promise<Response> {
-
     const { pageSize, searchByText, pageNumber, sortField, sortBy } = getAllSchemaDto;
     const schemaSearchCriteria: ISchemaSearchPayload = {
       pageNumber,
@@ -134,18 +189,46 @@ export class SchemaController {
     return res.status(HttpStatus.OK).json(finalResponse);
   }
 
-  
   @Post('/:orgId/schemas')
   @ApiOperation({
     summary: 'Create and register various types of schemas.',
-    description: 'Enables the creation and registration of schemas across different systems: the Indy ledger, the Polygon blockchain network, and W3C ledger-less standards.'
-  }
-  )
+    description:
+      'Enables the creation and registration of schemas across different systems: the Indy ledger, the Polygon blockchain network, and W3C ledger-less standards.'
+  })
   @Roles(OrgRoles.OWNER, OrgRoles.ADMIN)
-  @UseGuards(AuthGuard('jwt'), OrgRolesGuard)
+  @RequiresMarketplaceFeature('schemaCreate')
+  @UseGuards(AuthGuard('jwt'), OrgRolesGuard, MarketplaceEntitlementGuard)
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Success', type: ApiResponseDto })
-  async createSchema(@Res() res: Response, @Body() schemaDetails: GenericSchemaDTO, @Param('orgId', new ParseUUIDPipe({exceptionFactory: (): Error => { throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId); }})) orgId: string, @User() user: IUserRequestInterface): Promise<Response> {
-  const schemaResponse = await this.appService.createSchema(schemaDetails, user, orgId);
+  async createSchema(
+    @Res() res: Response,
+    @Body() schemaDetails: GenericSchemaDTO,
+    @Param(
+      'orgId',
+      new ParseUUIDPipe({
+        exceptionFactory: (): Error => {
+          throw new BadRequestException(ResponseMessages.organisation.error.invalidOrgId);
+        }
+      })
+    )
+    orgId: string,
+    @User() user: IUserRequestInterface
+  ): Promise<Response> {
+    const schemaResponse = await this.appService.createSchema(schemaDetails, user, orgId);
+    const marketplaceSchemaResponse = schemaResponse as { schemaLedgerId?: string; id?: string; schemaId?: string };
+    await this.marketplaceService
+      .recordUsageEvent({
+        orgId,
+        eventType: 'schema_created',
+        sourceTable: 'schema',
+        sourceId:
+          marketplaceSchemaResponse?.schemaLedgerId ||
+          marketplaceSchemaResponse?.id ||
+          marketplaceSchemaResponse?.schemaId ||
+          `${orgId}:${Date.now()}`,
+        quantity: 1,
+        metadata: { schemaResponse }
+      })
+      .catch((error) => this.logger.warn(`Unable to record Marketplace schema usage: ${JSON.stringify(error)}`));
     const finalResponse: IResponse = {
       statusCode: HttpStatus.CREATED,
       message: ResponseMessages.schema.success.create,

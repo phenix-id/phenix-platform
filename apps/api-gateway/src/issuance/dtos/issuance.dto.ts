@@ -338,6 +338,10 @@ export class IssuanceDto {
 
   @ApiProperty()
   @IsOptional()
+  updatedAt: string;
+
+  @ApiProperty()
+  @IsOptional()
   state: string;
 
   @ApiProperty()

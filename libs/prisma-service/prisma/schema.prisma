@@ -9,31 +9,32 @@ datasource db {
 }
 
 model user {
-  id                     String                   @id(map: "PK_cace4a159ff9f2512dd42373760") @default(uuid()) @db.Uuid
-  createDateTime         DateTime                 @default(now()) @db.Timestamptz(6)
-  lastChangedDateTime    DateTime                 @default(now()) @db.Timestamptz(6)
-  firstName              String?                  @db.VarChar(500)
-  lastName               String?                  @db.VarChar(500)
-  email                  String?                  @unique(map: "UQ_e12875dfb3b1d92d7d7c5377e22") @db.VarChar(500)
-  username               String?                  @db.VarChar(500)
-  verificationCode       String?                  @db.VarChar(500)
-  isEmailVerified        Boolean                  @default(false)
-  supabaseUserId         String?                  @db.VarChar(500)
-  keycloakUserId         String?                  @db.VarChar(500)
-  clientId               String?                  @db.VarChar(500)
-  clientSecret           String?                  @db.VarChar(500)
-  profileImg             String?
-  fidoUserId             String?                  @db.VarChar(1000)
-  isFidoVerified         Boolean                  @default(false)
-  publicProfile          Boolean                  @default(false)
-  password               String?                  @db.VarChar
-  orgInvitations         org_invitations[]
-  user_activities        user_activity[]
-  userDevices            user_devices[]
-  userOrgRoles           user_org_roles[]
-  token                  token[]
-  user_role_mapping      user_role_mapping[]
-  cloud_wallet_user_info cloud_wallet_user_info[]
+  id                       String                     @id(map: "PK_cace4a159ff9f2512dd42373760") @default(uuid()) @db.Uuid
+  createDateTime           DateTime                   @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime      DateTime                   @default(now()) @db.Timestamptz(6)
+  firstName                String?                    @db.VarChar(500)
+  lastName                 String?                    @db.VarChar(500)
+  email                    String?                    @unique(map: "UQ_e12875dfb3b1d92d7d7c5377e22") @db.VarChar(500)
+  username                 String?                    @db.VarChar(500)
+  verificationCode         String?                    @db.VarChar(500)
+  isEmailVerified          Boolean                    @default(false)
+  supabaseUserId           String?                    @db.VarChar(500)
+  keycloakUserId           String?                    @db.VarChar(500)
+  clientId                 String?                    @db.VarChar(500)
+  clientSecret             String?                    @db.VarChar(500)
+  profileImg               String?
+  fidoUserId               String?                    @db.VarChar(1000)
+  isFidoVerified           Boolean                    @default(false)
+  publicProfile            Boolean                    @default(false)
+  password                 String?                    @db.VarChar
+  orgInvitations           org_invitations[]
+  user_activities          user_activity[]
+  userDevices              user_devices[]
+  userOrgRoles             user_org_roles[]
+  token                    token[]
+  user_role_mapping        user_role_mapping[]
+  cloud_wallet_user_info   cloud_wallet_user_info[]
+  marketplaceSubscriptions marketplace_subscription[]
 }
 
 model token {
@@ -93,39 +94,42 @@ model user_org_roles {
 }
 
 model organisation {
-  id                    String                  @id @default(uuid()) @db.Uuid
-  createDateTime        DateTime                @default(now()) @db.Timestamptz(6)
-  createdBy             String                  @db.Uuid
-  lastChangedDateTime   DateTime                @default(now()) @db.Timestamptz(6)
-  lastChangedBy         String                  @db.Uuid
-  name                  String?                 @db.VarChar(500)
-  description           String?                 @db.VarChar(500)
-  orgSlug               String?                 @unique
-  logoUrl               String?
-  website               String?                 @db.VarChar
-  publicProfile         Boolean                 @default(false)
-  idpId                 String?                 @db.VarChar(500)
-  clientId              String?                 @db.VarChar(500)
-  clientSecret          String?                 @db.VarChar(500)
-  registrationNumber    String?                 @db.VarChar(100)
-  countryId             Int?
-  countries             countries?              @relation(fields: [countryId], references: [id])
-  stateId               Int?
-  states                states?                 @relation(fields: [stateId], references: [id])
-  cityId                Int?
-  cities                cities?                 @relation(fields: [cityId], references: [id])
-  connections           connections[]
-  credentials           credentials[]
-  org_agents            org_agents[]
-  orgInvitations        org_invitations[]
-  presentations         presentations[]
-  schema                schema[]
-  user_activities       user_activity[]
-  userOrgRoles          user_org_roles[]
-  agent_invitations     agent_invitations[]
-  credential_definition credential_definition[]
-  file_upload           file_upload[]
-  ecosystemOrgs         ecosystem_orgs[]
+  id                       String                     @id @default(uuid()) @db.Uuid
+  createDateTime           DateTime                   @default(now()) @db.Timestamptz(6)
+  createdBy                String                     @db.Uuid
+  lastChangedDateTime      DateTime                   @default(now()) @db.Timestamptz(6)
+  lastChangedBy            String                     @db.Uuid
+  name                     String?                    @db.VarChar(500)
+  description              String?                    @db.VarChar(500)
+  orgSlug                  String?                    @unique
+  logoUrl                  String?
+  website                  String?                    @db.VarChar
+  publicProfile            Boolean                    @default(false)
+  idpId                    String?                    @db.VarChar(500)
+  clientId                 String?                    @db.VarChar(500)
+  clientSecret             String?                    @db.VarChar(500)
+  registrationNumber       String?                    @db.VarChar(100)
+  countryId                Int?
+  countries                countries?                 @relation(fields: [countryId], references: [id])
+  stateId                  Int?
+  states                   states?                    @relation(fields: [stateId], references: [id])
+  cityId                   Int?
+  cities                   cities?                    @relation(fields: [cityId], references: [id])
+  connections              connections[]
+  credentials              credentials[]
+  org_agents               org_agents[]
+  orgInvitations           org_invitations[]
+  presentations            presentations[]
+  schema                   schema[]
+  user_activities          user_activity[]
+  userOrgRoles             user_org_roles[]
+  agent_invitations        agent_invitations[]
+  credential_definition    credential_definition[]
+  file_upload              file_upload[]
+  ecosystemOrgs            ecosystem_orgs[]
+  marketplaceSubscriptions marketplace_subscription[]
+  marketplaceUsageEvents   marketplace_usage_event[]
+  billingUsageEvents       billing_usage_event[]
 }
 
 model org_invitations {
@@ -485,7 +489,7 @@ model file_upload {
   organisation        organisation? @relation(fields: [orgId], references: [id])
   orgId               String?       @db.Uuid
   credential_type     String?
-  templateId          String?       @db.VarChar 
+  templateId          String?       @db.VarChar
 }
 
 model file_data {
@@ -618,15 +622,234 @@ model cloud_wallet_user_info {
   createdBy           String          @db.Uuid
   lastChangedDateTime DateTime        @default(now()) @db.Timestamptz(6)
   lastChangedBy       String          @db.Uuid
-  userId              String?          @db.Uuid
+  userId              String?         @db.Uuid
   agentEndpoint       String?
   agentApiKey         String?
   key                 String?
   connectionImageUrl  String?
-  user                user?            @relation(fields: [userId], references: [id])
+  user                user?           @relation(fields: [userId], references: [id])
 }
 
 enum CloudWalletType {
   CLOUD_BASE_WALLET
   CLOUD_SUB_WALLET
+}
+
+enum MarketplaceSubscriptionStatus {
+  PendingFulfillmentStart
+  Subscribed
+  Suspended
+  Unsubscribed
+}
+
+enum MarketplaceActivationStatus {
+  not_started
+  in_progress
+  activated
+  failed
+}
+
+enum MarketplaceOnboardingStatus {
+  resolved
+  account_linked
+  org_linked
+  activation_pending
+  activated
+  expired
+  failed
+}
+
+enum MarketplaceUsageStatus {
+  pending
+  submitted
+  accepted
+  duplicate
+  failed
+  expired
+}
+
+enum MarketplaceWebhookProcessingStatus {
+  received
+  validated
+  processed
+  failed
+}
+
+enum MarketplaceOperationAckStatus {
+  not_required
+  pending
+  success
+  failure
+}
+
+model marketplace_subscription {
+  id                        String                           @id @default(uuid()) @db.Uuid
+  marketplaceSubscriptionId String                           @unique
+  publisherId               String?
+  offerId                   String
+  planId                    String
+  subscriptionName          String?
+  saasSubscriptionStatus    MarketplaceSubscriptionStatus    @default(PendingFulfillmentStart)
+  quantity                  Int?
+  termUnit                  String?
+  termStartDate             DateTime?                        @db.Timestamptz(6)
+  termEndDate               DateTime?                        @db.Timestamptz(6)
+  autoRenew                 Boolean?
+  isFreeTrial               Boolean?
+  isTest                    Boolean?
+  sandboxType               String?
+  allowedCustomerOperations String[]                         @default([])
+  purchaserEmail            String?
+  purchaserTenantId         String?
+  purchaserObjectId         String?
+  purchaserPuid             String?
+  beneficiaryEmail          String?
+  beneficiaryTenantId       String?
+  beneficiaryObjectId       String?
+  beneficiaryPuid           String?
+  localUserId               String?                          @db.Uuid
+  orgId                     String?                          @db.Uuid
+  activationStatus          MarketplaceActivationStatus      @default(not_started)
+  activationError           String?
+  lastResolvedAt            DateTime?                        @db.Timestamptz(6)
+  lastSyncedAt              DateTime?                        @db.Timestamptz(6)
+  metadata                  Json?
+  createDateTime            DateTime                         @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime       DateTime                         @default(now()) @db.Timestamptz(6)
+  deletedAt                 DateTime?                        @db.Timestamp(6)
+  user                      user?                            @relation(fields: [localUserId], references: [id])
+  organisation              organisation?                    @relation(fields: [orgId], references: [id])
+  onboardingSessions        marketplace_onboarding_session[]
+  usageEvents               marketplace_usage_event[]
+  billingUsageEvents        billing_usage_event[]
+  webhookEvents             marketplace_webhook_event[]
+  operations                marketplace_operation[]
+
+  @@index([orgId])
+  @@index([localUserId])
+  @@index([saasSubscriptionStatus])
+}
+
+model marketplace_onboarding_session {
+  id                        String                      @id @default(uuid()) @db.Uuid
+  marketplaceSubscriptionId String                      @db.Uuid
+  marketplaceTokenHash      String
+  buyerTenantId             String?
+  buyerObjectId             String?
+  buyerEmail                String?
+  status                    MarketplaceOnboardingStatus @default(resolved)
+  expiresAt                 DateTime                    @db.Timestamptz(6)
+  metadata                  Json?
+  createDateTime            DateTime                    @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime       DateTime                    @default(now()) @db.Timestamptz(6)
+  subscription              marketplace_subscription    @relation(fields: [marketplaceSubscriptionId], references: [id])
+
+  @@index([expiresAt])
+  @@index([marketplaceSubscriptionId])
+}
+
+model marketplace_plan {
+  id                               String   @id @default(uuid()) @db.Uuid
+  offerId                          String
+  planId                           String
+  displayName                      String
+  isActive                         Boolean  @default(true)
+  includedIssuanceTransactions     Int      @default(0)
+  includedVerificationTransactions Int      @default(0)
+  includedWalletTenants            Int      @default(0)
+  includedSchemas                  Int      @default(0)
+  maxOrganizations                 Int?
+  maxUsers                         Int?
+  maxWalletTenants                 Int?
+  features                         Json
+  createDateTime                   DateTime @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime              DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([offerId, planId])
+  @@index([isActive])
+}
+
+model marketplace_usage_event {
+  id                        String                   @id @default(uuid()) @db.Uuid
+  marketplaceSubscriptionId String                   @db.Uuid
+  orgId                     String                   @db.Uuid
+  dimension                 String
+  quantity                  Float
+  usageStartTime            DateTime                 @db.Timestamptz(6)
+  status                    MarketplaceUsageStatus   @default(pending)
+  marketplaceResponseStatus String?
+  marketplaceMessage        String?
+  requestId                 String?
+  correlationId             String?
+  submittedAt               DateTime?                @db.Timestamptz(6)
+  sourceEventIds            Json?
+  createDateTime            DateTime                 @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime       DateTime                 @default(now()) @db.Timestamptz(6)
+  subscription              marketplace_subscription @relation(fields: [marketplaceSubscriptionId], references: [id])
+  organisation              organisation             @relation(fields: [orgId], references: [id])
+
+  @@unique([marketplaceSubscriptionId, dimension, usageStartTime])
+  @@index([status, usageStartTime])
+  @@index([orgId])
+}
+
+model billing_usage_event {
+  id                        String                    @id @default(uuid()) @db.Uuid
+  orgId                     String                    @db.Uuid
+  marketplaceSubscriptionId String?                   @db.Uuid
+  eventType                 String
+  sourceTable               String?
+  sourceId                  String
+  occurredAt                DateTime                  @db.Timestamptz(6)
+  billingPeriod             String?
+  quantity                  Float                     @default(1)
+  metadata                  Json?
+  createDateTime            DateTime                  @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime       DateTime                  @default(now()) @db.Timestamptz(6)
+  organisation              organisation              @relation(fields: [orgId], references: [id])
+  subscription              marketplace_subscription? @relation(fields: [marketplaceSubscriptionId], references: [id])
+
+  @@unique([eventType, sourceId])
+  @@index([orgId, occurredAt])
+  @@index([marketplaceSubscriptionId])
+}
+
+model marketplace_webhook_event {
+  id                        String                             @id @default(uuid()) @db.Uuid
+  operationId               String?
+  activityId                String?
+  subscriptionId            String
+  marketplaceSubscriptionId String?                            @db.Uuid
+  action                    String
+  status                    String?
+  payload                   Json
+  headers                   Json?
+  validationStatus          String?
+  processingStatus          MarketplaceWebhookProcessingStatus @default(received)
+  error                     String?
+  createDateTime            DateTime                           @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime       DateTime                           @default(now()) @db.Timestamptz(6)
+  subscription              marketplace_subscription?          @relation(fields: [marketplaceSubscriptionId], references: [id])
+
+  @@index([operationId])
+  @@index([subscriptionId])
+}
+
+model marketplace_operation {
+  id                        String                        @id @default(uuid()) @db.Uuid
+  operationId               String
+  marketplaceSubscriptionId String                        @db.Uuid
+  action                    String
+  status                    String?
+  planId                    String?
+  quantity                  Int?
+  rawPayload                Json?
+  ackStatus                 MarketplaceOperationAckStatus @default(pending)
+  ackError                  String?
+  createDateTime            DateTime                      @default(now()) @db.Timestamptz(6)
+  lastChangedDateTime       DateTime                      @default(now()) @db.Timestamptz(6)
+  subscription              marketplace_subscription      @relation(fields: [marketplaceSubscriptionId], references: [id])
+
+  @@unique([operationId, marketplaceSubscriptionId])
+  @@index([action])
 }

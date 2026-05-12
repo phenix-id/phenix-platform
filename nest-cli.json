@@ -304,6 +304,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/cloud-wallet/tsconfig.app.json"
       }
+    },
+    "marketplace": {
+      "type": "application",
+      "root": "apps/marketplace",
+      "entryFile": "main",
+      "sourceRoot": "apps/marketplace/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/marketplace/tsconfig.app.json"
+      }
     }
   }
 }
