@@ -7,7 +7,6 @@ import { MicrosoftMarketplaceClient } from './microsoft-marketplace.client';
 const dimensionByEventType: Record<string, string> = {
   issuance_completed: 'issuance_txn',
   verification_completed: 'verification_txn',
-  wallet_tenant_created: 'wallet_tenant',
   schema_created: 'schema_create'
 };
 
@@ -138,7 +137,6 @@ export class MeteringService {
     return {
       issuance_txn: plan?.includedIssuanceTransactions || 0,
       verification_txn: plan?.includedVerificationTransactions || 0,
-      wallet_tenant: plan?.includedWalletTenants || 0,
       schema_create: plan?.includedSchemas || 0
     };
   }

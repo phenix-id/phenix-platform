@@ -6,6 +6,7 @@ import { MarketplaceService } from '../marketplace.service';
 interface EntitlementResponse {
   features?: Record<string, boolean>;
   blockedReason?: string | null;
+  usage?: Record<string, { included: number; used: number; overage: number }>;
 }
 
 @Injectable()
@@ -37,6 +38,12 @@ export class MarketplaceEntitlementGuard implements CanActivate {
       request.user?.id
     )) as EntitlementResponse;
     if (entitlements.features?.[feature]) {
+      if (feature === 'schemaCreate' && this.isUsageLimitReached(entitlements, 'schema_create')) {
+        throw new ForbiddenException({
+          code: 'marketplace_schema_limit_reached',
+          message: 'Marketplace schema creation limit has been reached for this plan'
+        });
+      }
       return true;
     }
 
@@ -44,6 +51,15 @@ export class MarketplaceEntitlementGuard implements CanActivate {
       code: entitlements.blockedReason || 'marketplace_feature_not_allowed',
       message: 'Marketplace subscription does not allow this action'
     });
+  }
+
+  private isUsageLimitReached(entitlements: EntitlementResponse, dimension: string): boolean {
+    const usage = entitlements.usage?.[dimension];
+    if (!usage || usage.included === null || usage.included === undefined) {
+      return false;
+    }
+
+    return Number(usage.used || 0) >= Number(usage.included);
   }
 
   private getOrgId(request): string | undefined {

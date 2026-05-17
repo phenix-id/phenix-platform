@@ -756,11 +756,9 @@ model marketplace_plan {
   isActive                         Boolean  @default(true)
   includedIssuanceTransactions     Int      @default(0)
   includedVerificationTransactions Int      @default(0)
-  includedWalletTenants            Int      @default(0)
   includedSchemas                  Int      @default(0)
   maxOrganizations                 Int?
   maxUsers                         Int?
-  maxWalletTenants                 Int?
   features                         Json
   createDateTime                   DateTime @default(now()) @db.Timestamptz(6)
   lastChangedDateTime              DateTime @default(now()) @db.Timestamptz(6)

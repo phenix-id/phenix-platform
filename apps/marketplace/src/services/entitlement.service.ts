@@ -9,14 +9,12 @@ const defaultFeatures: Record<string, boolean> = {
   issuance: true,
   bulkIssuance: true,
   verification: true,
-  cloudWallet: true,
   apiAccess: true
 };
 
 const eventTypeByDimension: Record<string, string> = {
   issuance_txn: 'issuance_completed',
   verification_txn: 'verification_completed',
-  wallet_tenant: 'wallet_tenant_created',
   schema_create: 'schema_created'
 };
 
@@ -54,8 +52,7 @@ export class EntitlementService {
       features,
       limits: {
         maxUsers: plan?.maxUsers || null,
-        maxOrganizations: plan?.maxOrganizations || null,
-        maxWalletTenants: plan?.maxWalletTenants || null
+        maxOrganizations: plan?.maxOrganizations || null
       },
       usage,
       blockedReason: isActive ? null : this.blockedReason(subscription)
@@ -133,7 +130,6 @@ export class EntitlementService {
     const includedByDimension: Record<string, number> = {
       issuance_txn: plan.includedIssuanceTransactions,
       verification_txn: plan.includedVerificationTransactions,
-      wallet_tenant: plan.includedWalletTenants,
       schema_create: plan.includedSchemas
     };
 

@@ -369,7 +369,6 @@ export class MarketplaceService extends BaseService {
     const displayNames = {
       issuance_txn: 'Credential issuance',
       verification_txn: 'Credential verification',
-      wallet_tenant: 'Wallet tenant',
       schema_create: 'Schema creation'
     };
     return displayNames[dimension] || dimension;

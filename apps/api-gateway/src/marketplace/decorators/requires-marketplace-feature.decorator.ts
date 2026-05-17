@@ -8,7 +8,6 @@ export type MarketplaceFeature =
   | 'issuance'
   | 'bulkIssuance'
   | 'verification'
-  | 'cloudWallet'
   | 'apiAccess';
 
 export const RequiresMarketplaceFeature = (feature: MarketplaceFeature): ReturnType<typeof SetMetadata> =>
