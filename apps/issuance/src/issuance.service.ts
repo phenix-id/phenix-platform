@@ -26,6 +26,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { FileUploadStatus, FileUploadType } from 'apps/api-gateway/src/enum';
 import { AwsService } from '@credebl/aws';
+import { AzureStorageService } from '@credebl/azure-storage';
 import { io } from 'socket.io-client';
 import { IIssuedCredentialSearchParams, IssueCredentialType } from 'apps/api-gateway/src/issuance/interfaces';
 import { ICredentialOfferResponse, IDeletedIssuanceRecords, IIssuedCredential, IJsonldCredential, IPrettyVc, ISchemaObject } from '@credebl/common/interfaces/issuance.interface';
@@ -52,6 +53,7 @@ export class IssuanceService {
     private readonly outOfBandIssuance: OutOfBandIssuance,
     private readonly emailData: EmailDto,
     private readonly awsService: AwsService,
+    private readonly azureStorageService: AzureStorageService,
     @InjectQueue('bulk-issuance') private bulkIssuanceQueue: Queue,
     @Inject(CACHE_MANAGER) private cacheService: Cache
   ) { }
@@ -1101,9 +1103,10 @@ async sendEmailForCredentialOffer(sendEmailCredentialOffer: SendEmailCredentialO
         credentialPayload.schemaName = credentialDetails.schemaName;
       }
 
-      const getFileDetails = await this.awsService.getFile(importFileDetails.fileKey);
-
-      const csvData: string = getFileDetails.Body.toString();
+      const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
+      const csvData: string = 'azure' === storageProvider
+        ? (await this.azureStorageService.getFileByKey(importFileDetails.fileKey)).toString()
+        : (await this.awsService.getFile(importFileDetails.fileKey)).Body.toString();
 
       const parsedData = paParse(csvData, {
         header: true,

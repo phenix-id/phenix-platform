@@ -43,6 +43,7 @@ import { ClientRegistrationService } from '@credebl/client-registration/client-r
 import { map } from 'rxjs/operators';
 import { Cache } from 'cache-manager';
 import { AwsService } from '@credebl/aws';
+import { AzureStorageService } from '@credebl/azure-storage';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   IOrgCredentials,
@@ -69,6 +70,7 @@ export class OrganizationService {
     private readonly orgRoleService: OrgRolesService,
     private readonly userOrgRoleService: UserOrgRolesService,
     private readonly awsService: AwsService,
+    private readonly azureStorageService: AzureStorageService,
     private readonly userActivityService: UserActivityService,
     private readonly logger: Logger,
     @Inject(CACHE_MANAGER) private cacheService: Cache,
@@ -463,6 +465,19 @@ export class OrganizationService {
     try {
       const updatedOrglogo = orgLogo.split(',')[1];
       const imgData = Buffer.from(updatedOrglogo, 'base64');
+      const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
+
+      if ('azure' === storageProvider) {
+        return this.azureStorageService.uploadUserCertificate(
+          imgData,
+          'png',
+          'orgLogo',
+          process.env.AZURE_STORAGE_CONTAINER_NAME || 'logo',
+          'base64',
+          'orgLogos'
+        );
+      }
+
       const logoUrl = await this.awsService.uploadUserCertificate(
         imgData,
         'png',

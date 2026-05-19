@@ -26,6 +26,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@azure/storage-blob": "12.26.0",
     "@nestjs/axios": "^3.0.0",
     "@nestjs/bull": "^10.0.1",
     "@nestjs/cache-manager": "^2.1.0",
@@ -106,6 +107,28 @@
     "web-push": "^3.6.4",
     "xml-js": "^1.6.11"
   },
+  "overrides": {
+    "@azure/core-auth": "1.9.0",
+    "@azure/core-client": "1.9.3",
+    "@azure/core-http-compat": "2.3.0",
+    "@azure/core-rest-pipeline": "1.19.1",
+    "@azure/core-tracing": "1.2.0",
+    "@azure/core-util": "1.11.0",
+    "@azure/core-xml": "1.4.5",
+    "@azure/logger": "1.1.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@azure/core-auth": "1.9.0",
+      "@azure/core-client": "1.9.3",
+      "@azure/core-http-compat": "2.3.0",
+      "@azure/core-rest-pipeline": "1.19.1",
+      "@azure/core-tracing": "1.2.0",
+      "@azure/core-util": "1.11.0",
+      "@azure/core-xml": "1.4.5",
+      "@azure/logger": "1.1.4"
+    }
+  },
   "devDependencies": {
     "@nestjs/cli": "^10.1.11",
     "@nestjs/schematics": "^10.0.1",
@@ -182,6 +205,7 @@
       "^@app/supabase(|/.*)$": "<rootDir>/libs/supabase/src/$1",
       "^@credebl/image-service(|/.*)$": "<rootDir>/libs/image-service/src/$1",
       "^@credebl/aws(|/.*)$": "<rootDir>/libs/aws/src/$1",
+      "^@credebl/azure-storage(|/.*)$": "<rootDir>/libs/azure-storage/src/$1",
       "^credebl/utility(|/.*)$": "<rootDir>/libs/utility/src/$1"
     }
   }

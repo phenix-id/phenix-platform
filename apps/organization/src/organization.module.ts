@@ -19,6 +19,7 @@ import { ClientRegistrationService } from '@credebl/client-registration';
 import { KeycloakUrlService } from '@credebl/keycloak-url';
 
 import { AwsService } from '@credebl/aws';
+import { AzureStorageService } from '@credebl/azure-storage';
 import { CommonConstants } from '@credebl/common/common.constant';
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { CommonConstants } from '@credebl/common/common.constant';
      UserActivityRepository, UserOrgRolesRepository, UserRepository, UserActivityService,
       ClientRegistrationService,
       KeycloakUrlService,
-      AwsService
+      AwsService,
+      AzureStorageService
     ]
 
 })

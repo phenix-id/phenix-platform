@@ -269,6 +269,15 @@
         "tsConfigPath": "libs/aws/tsconfig.lib.json"
       }
     },
+    "azure-storage": {
+      "type": "library",
+      "root": "libs/azure-storage",
+      "entryFile": "index",
+      "sourceRoot": "libs/azure-storage/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/azure-storage/tsconfig.lib.json"
+      }
+    },
     "utility": {
       "type": "application",
       "root": "apps/utility",

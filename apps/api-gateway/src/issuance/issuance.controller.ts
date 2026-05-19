@@ -69,6 +69,7 @@ import {
   UploadedFileDetails
 } from './interfaces';
 import { AwsService } from '@credebl/aws';
+import { AzureStorageService } from '@credebl/azure-storage';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { v4 as uuidv4 } from 'uuid';
 import { RpcException } from '@nestjs/microservices';
@@ -90,6 +91,7 @@ export class IssuanceController {
   constructor(
     private readonly issueCredentialService: IssuanceService,
     private readonly awsService: AwsService,
+    private readonly azureStorageService: AzureStorageService,
     private readonly marketplaceService: MarketplaceService
   ) {}
   private readonly logger = new Logger('IssuanceController');
@@ -327,7 +329,7 @@ export class IssuanceController {
     if (file) {
       const fileKey: string = uuidv4();
       try {
-        await this.awsService.uploadCsvFile(fileKey, file?.buffer);
+        await this.uploadCsvFile(fileKey, file?.buffer);
       } catch (error) {
         throw new RpcException(error.response ? error.response : error);
       }
@@ -452,7 +454,7 @@ export class IssuanceController {
     if (file && clientDetails?.isSelectiveIssuance) {
       const fileKey: string = uuidv4();
       try {
-        await this.awsService.uploadCsvFile(fileKey, file.buffer);
+        await this.uploadCsvFile(fileKey, file.buffer);
       } catch (error) {
         throw new RpcException(error.response ? error.response : error);
       }
@@ -829,6 +831,17 @@ export class IssuanceController {
 
   private isIssuedCredentialState(state?: string): boolean {
     return ['done', 'issued', 'credential_issued'].includes(`${state}`.toLowerCase());
+  }
+
+  private async uploadCsvFile(fileKey: string, fileBuffer: Buffer): Promise<void> {
+    const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
+
+    if ('azure' === storageProvider) {
+      await this.azureStorageService.uploadCsvFile(fileKey, fileBuffer);
+      return;
+    }
+
+    await this.awsService.uploadCsvFile(fileKey, fileBuffer);
   }
 
   @Delete('/orgs/:orgId/issuance-records')

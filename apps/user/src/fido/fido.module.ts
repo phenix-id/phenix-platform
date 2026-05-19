@@ -20,6 +20,7 @@ import { UserOrgRolesService } from '@credebl/user-org-roles';
 import { UserRepository } from '../../repositories/user.repository';
 import { UserService } from '../user.service';
 import { AwsService } from '@credebl/aws';
+import { AzureStorageService } from '@credebl/azure-storage';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AwsService } from '@credebl/aws';
   controllers: [FidoController],
   providers: [
     AwsService,
+    AzureStorageService,
     UserService,
     PrismaService,
     FidoService,
