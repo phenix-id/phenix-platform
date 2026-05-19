@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Get,
   HttpStatus,
@@ -38,6 +39,24 @@ export class AuthzController {
 
   constructor(private readonly authzService: AuthzService,
     private readonly commonService: CommonService) { }
+
+  @Post('/encrypt')
+  @ApiOperation({ summary: 'Encrypt a value with the platform crypto key', description: 'Encrypts values that Platform expects encrypted before processing.' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Success', type: ApiResponseDto })
+  async encryptValue(@Body() body: { value?: string; password?: string }, @Res() res: Response): Promise<Response> {
+    const value = body?.value ?? body?.password;
+    if ('string' !== typeof value || '' === value) {
+      throw new BadRequestException('Value is required');
+    }
+
+    const finalResponse: IResponseType = {
+      statusCode: HttpStatus.OK,
+      message: 'Value encrypted successfully',
+      data: this.commonService.dataEncryption(value)
+    };
+
+    return res.status(HttpStatus.OK).json(finalResponse);
+  }
 
   /**
    * @param email

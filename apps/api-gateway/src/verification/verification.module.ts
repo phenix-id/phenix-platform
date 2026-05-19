@@ -7,10 +7,12 @@ import { VerificationService } from './verification.service';
 import { getNatsOptions } from '@credebl/common/nats.config';
 import { ImageServiceService } from '@credebl/image-service';
 import { CommonConstants } from '@credebl/common/common.constant';
+import { CommonModule } from '@credebl/common';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    CommonModule,
     ClientsModule.register([
       {
         name: 'NATS_CLIENT',

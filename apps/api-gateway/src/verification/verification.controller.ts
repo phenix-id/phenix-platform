@@ -34,6 +34,7 @@ import { ForbiddenErrorDto } from '../dtos/forbidden-error.dto';
 import { SendProofRequestPayload, RequestProofDto } from './dto/request-proof.dto';
 import { VerificationService } from './verification.service';
 import IResponseType, { IResponse } from '@credebl/common/interfaces/response.interface';
+import { IProofPresentationList } from '@credebl/common/interfaces/verification.interface';
 import { Response } from 'express';
 import { ResponseMessages } from '@credebl/common/response-messages';
 import { IUserRequest } from '@credebl/user-request/user-request.interface';
@@ -53,6 +54,7 @@ import { user } from '@prisma/client';
 import { RequiresMarketplaceFeature } from '../marketplace/decorators/requires-marketplace-feature.decorator';
 import { MarketplaceEntitlementGuard } from '../marketplace/guards/marketplace-entitlement.guard';
 import { MarketplaceService } from '../marketplace/marketplace.service';
+import { CommonService } from '@credebl/common';
 
 @UseFilters(CustomExceptionFilter)
 @Controller()
@@ -61,7 +63,8 @@ export class VerificationController {
   constructor(
     private readonly verificationService: VerificationService,
     private readonly imageServiceService: ImageServiceService,
-    private readonly marketplaceService: MarketplaceService
+    private readonly marketplaceService: MarketplaceService,
+    private readonly commonService: CommonService
   ) {}
 
   private readonly logger = new Logger('VerificationController');
@@ -180,12 +183,28 @@ export class VerificationController {
       user,
       orgId
     );
+    this.decryptProofPresentationEmails(proofPresentationDetails);
     const finalResponse: IResponse = {
       statusCode: HttpStatus.OK,
       message: ResponseMessages.verification.success.fetch,
       data: proofPresentationDetails
     };
     return res.status(HttpStatus.OK).json(finalResponse);
+  }
+
+  private decryptProofPresentationEmails(proofPresentationDetails: IProofPresentationList): void {
+    const rows = Array.isArray(proofPresentationDetails?.data) ? proofPresentationDetails.data : [];
+    for (const row of rows) {
+      if ('string' !== typeof row?.emailId || !row.emailId.startsWith('U2FsdGVkX1')) {
+        continue;
+      }
+
+      try {
+        row.emailId = this.commonService.decryptPassword(row.emailId);
+      } catch {
+        row.emailId = 'Not Available';
+      }
+    }
   }
 
   /**
