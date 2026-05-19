@@ -55,7 +55,6 @@ import { ParticipantTemplate } from '../templates/participant-template';
 import { ArbiterTemplate } from '../templates/arbiter-template';
 import validator from 'validator';
 import { DISALLOWED_EMAIL_DOMAIN } from '@credebl/common/common.constant';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import puppeteer from 'puppeteer';
 import { WorldRecordTemplate } from '../templates/world-record-template';
@@ -80,7 +79,6 @@ export class UserService {
     private readonly userOrgRoleService: UserOrgRolesService,
     private readonly userActivityService: UserActivityService,
     private readonly userRepository: UserRepository,
-    private readonly awsService: AwsService,
     private readonly azureStorageService: AzureStorageService,
     private readonly userDevicesRepository: UserDevicesRepository,
     private readonly logger: Logger,
@@ -951,24 +949,14 @@ export class UserService {
     const imageBuffer = 
     await this.convertHtmlToImage(template, shareUserCertificate.credentialId, option);
 
-    const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
-    const imageUrl = 'azure' === storageProvider
-      ? await this.azureStorageService.uploadUserCertificate(
-        imageBuffer,
-        'svg',
-        'certificates',
-        process.env.AZURE_STORAGE_CONTAINER_NAME || 'logo',
-        'base64',
-        'certificates'
-      )
-      : await this.awsService.uploadUserCertificate(
-        imageBuffer,
-        'svg',
-        'certificates',
-        process.env.AWS_PUBLIC_BUCKET_NAME,
-        'base64',
-        'certificates'
-      );
+    const imageUrl = await this.azureStorageService.uploadUserCertificate(
+      imageBuffer,
+      'svg',
+      'certificates',
+      process.env.AZURE_STORAGE_CONTAINER_NAME || 'logo',
+      'base64',
+      'certificates'
+    );
     const existCredentialId = await this.userRepository.getUserCredentialsById(shareUserCertificate.credentialId);
     
     if (existCredentialId) {

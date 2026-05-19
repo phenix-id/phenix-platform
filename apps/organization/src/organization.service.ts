@@ -42,7 +42,6 @@ import { UserActivityService } from '@credebl/user-activity';
 import { ClientRegistrationService } from '@credebl/client-registration/client-registration.service';
 import { map } from 'rxjs/operators';
 import { Cache } from 'cache-manager';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
@@ -69,7 +68,6 @@ export class OrganizationService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly orgRoleService: OrgRolesService,
     private readonly userOrgRoleService: UserOrgRolesService,
-    private readonly awsService: AwsService,
     private readonly azureStorageService: AzureStorageService,
     private readonly userActivityService: UserActivityService,
     private readonly logger: Logger,
@@ -116,7 +114,7 @@ export class OrganizationService {
       createOrgDto.lastChangedBy = userId;
 
       if (await this.isValidBase64(createOrgDto?.logo)) {
-        const imageUrl = await this.uploadFileToS3(createOrgDto.logo);
+        const imageUrl = await this.uploadFileToAzure(createOrgDto.logo);
         createOrgDto.logo = imageUrl;
       } else {
         createOrgDto.logo = '';
@@ -461,32 +459,18 @@ export class OrganizationService {
     }
   }
 
-  async uploadFileToS3(orgLogo: string): Promise<string> {
+  async uploadFileToAzure(orgLogo: string): Promise<string> {
     try {
       const updatedOrglogo = orgLogo.split(',')[1];
       const imgData = Buffer.from(updatedOrglogo, 'base64');
-      const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
-
-      if ('azure' === storageProvider) {
-        return this.azureStorageService.uploadUserCertificate(
-          imgData,
-          'png',
-          'orgLogo',
-          process.env.AZURE_STORAGE_CONTAINER_NAME || 'logo',
-          'base64',
-          'orgLogos'
-        );
-      }
-
-      const logoUrl = await this.awsService.uploadUserCertificate(
+      return this.azureStorageService.uploadUserCertificate(
         imgData,
         'png',
         'orgLogo',
-        process.env.AWS_ORG_LOGO_BUCKET_NAME,
+        process.env.AZURE_STORAGE_CONTAINER_NAME || 'logo',
         'base64',
         'orgLogos'
       );
-      return logoUrl;
     } catch (error) {
       this.logger.error(`In getting imageUrl : ${JSON.stringify(error)}`);
       throw new RpcException(error.response ? error.response : error);
@@ -526,7 +510,7 @@ export class OrganizationService {
       updateOrgDto.userId = userId;
 
       if (await this.isValidBase64(updateOrgDto.logo)) {
-        const imageUrl = await this.uploadFileToS3(updateOrgDto.logo);
+        const imageUrl = await this.uploadFileToAzure(updateOrgDto.logo);
         updateOrgDto.logo = imageUrl;
       } else {
         delete updateOrgDto.logo;

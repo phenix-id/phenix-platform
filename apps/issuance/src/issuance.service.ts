@@ -25,7 +25,6 @@ import { convertUrlToDeepLinkUrl, paginator } from '@credebl/common/common.utils
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { FileUploadStatus, FileUploadType } from 'apps/api-gateway/src/enum';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import { io } from 'socket.io-client';
 import { IIssuedCredentialSearchParams, IssueCredentialType } from 'apps/api-gateway/src/issuance/interfaces';
@@ -52,7 +51,6 @@ export class IssuanceService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly outOfBandIssuance: OutOfBandIssuance,
     private readonly emailData: EmailDto,
-    private readonly awsService: AwsService,
     private readonly azureStorageService: AzureStorageService,
     @InjectQueue('bulk-issuance') private bulkIssuanceQueue: Queue,
     @Inject(CACHE_MANAGER) private cacheService: Cache
@@ -1103,10 +1101,7 @@ async sendEmailForCredentialOffer(sendEmailCredentialOffer: SendEmailCredentialO
         credentialPayload.schemaName = credentialDetails.schemaName;
       }
 
-      const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
-      const csvData: string = 'azure' === storageProvider
-        ? (await this.azureStorageService.getFileByKey(importFileDetails.fileKey)).toString()
-        : (await this.awsService.getFile(importFileDetails.fileKey)).Body.toString();
+      const csvData: string = (await this.azureStorageService.getFileByKey(importFileDetails.fileKey)).toString();
 
       const parsedData = paParse(csvData, {
         header: true,

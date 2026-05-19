@@ -68,7 +68,6 @@ import {
   IssueCredentialType,
   UploadedFileDetails
 } from './interfaces';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { v4 as uuidv4 } from 'uuid';
@@ -90,7 +89,6 @@ import { MarketplaceService } from '../marketplace/marketplace.service';
 export class IssuanceController {
   constructor(
     private readonly issueCredentialService: IssuanceService,
-    private readonly awsService: AwsService,
     private readonly azureStorageService: AzureStorageService,
     private readonly marketplaceService: MarketplaceService
   ) {}
@@ -834,14 +832,7 @@ export class IssuanceController {
   }
 
   private async uploadCsvFile(fileKey: string, fileBuffer: Buffer): Promise<void> {
-    const storageProvider = process.env.STORAGE_PROVIDER?.toLowerCase() || 'aws';
-
-    if ('azure' === storageProvider) {
-      await this.azureStorageService.uploadCsvFile(fileKey, fileBuffer);
-      return;
-    }
-
-    await this.awsService.uploadCsvFile(fileKey, fileBuffer);
+    await this.azureStorageService.uploadCsvFile(fileKey, fileBuffer);
   }
 
   @Delete('/orgs/:orgId/issuance-records')

@@ -47,7 +47,6 @@ import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { Roles } from '../authz/decorators/roles.decorator';
 import { OrgRolesGuard } from '../authz/guards/org-roles.guard';
 import { OrgRoles } from 'libs/org-roles/enums';
-import { AwsService } from '@credebl/aws/aws.service';
 import { PaginationDto } from '@credebl/common/dtos/pagination.dto';
 import { CreateCertificateDto } from './dto/share-certificate.dto';
 import { UserAccessGuard } from '../authz/guards/user-access-guard';
@@ -60,8 +59,7 @@ import { UserAccessGuard } from '../authz/guards/user-access-guard';
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly commonService: CommonService,
-    private readonly awsService: AwsService
+    private readonly commonService: CommonService
   ) { }
 
   /**

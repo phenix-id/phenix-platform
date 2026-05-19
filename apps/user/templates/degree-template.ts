@@ -120,7 +120,7 @@ export class DegreeCertificateTemplate {
                             <div style="line-height: 1;width: 1260px;height: 1977px;">
                                 <div style="position: relative;">
                                     <div style="">
-                                        <img style="width: 1260px" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/uni-frame.svg" />
+                                        <img style="width: 1260px" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/uni-frame.svg" />
                                     </div>
                                 </div>
                                 <div style="position: absolute;top: 0px;width: calc(1260px - 10rem);height: calc(1977px - 10rem);padding: 5rem;padding-left: 5rem;padding-right: 5rem;">
@@ -128,7 +128,7 @@ export class DegreeCertificateTemplate {
                                         <div>
                                             <img
                                                 style="width: 200px; height: auto; margin-top: 1rem;"
-                                                src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/college-color-logo.svg"
+                                                src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/college-color-logo.svg"
                                             />
                                         </div>
                                         <div
@@ -227,7 +227,7 @@ export class DegreeCertificateTemplate {
                                             <div style="margin: 0 auto;">
                                                 <img
                                                     style="width: 200px; height: auto; margin-top: 1rem;"
-                                                    src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/college-logo.svg"
+                                                    src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/college-logo.svg"
                                                 />
                                             </div>
                                             <div style="width: 33%; text-align: end;">

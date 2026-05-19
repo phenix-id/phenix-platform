@@ -57,7 +57,7 @@ export class ParticipantTemplate {
       <body>
       
       <div id="container" style="">
-      <img id="backgroundImage" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/background_image.svg" alt="background"
+      <img id="backgroundImage" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/background_image.svg" alt="background"
       style="height: 1000px; width: 770px;"
         />
         <div id="textOverlay" style="width: 640px; height: 690px;">

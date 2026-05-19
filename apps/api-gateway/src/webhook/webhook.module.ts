@@ -5,7 +5,6 @@ import { WebhookService } from './webhook.service';
 import { CommonService } from '@credebl/common';
 import { HttpModule } from '@nestjs/axios';
 import { getNatsOptions } from '@credebl/common/nats.config';
-import { AwsService } from '@credebl/aws';
 import { CommonConstants } from '@credebl/common/common.constant';
 
 @Module({
@@ -20,6 +19,6 @@ import { CommonConstants } from '@credebl/common/common.constant';
     ])
   ],
   controllers: [WebhookController],
-  providers: [WebhookService, CommonService, AwsService]
+  providers: [WebhookService, CommonService]
 })
 export class WebhookModule { }

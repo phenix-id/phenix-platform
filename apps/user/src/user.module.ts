@@ -18,7 +18,6 @@ import { UserRepository } from '../repositories/user.repository';
 import { UserService } from './user.service';
 import { UserDevicesRepository } from '../repositories/user-device.repository';
 import { getNatsOptions } from '@credebl/common/nats.config';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import { CommonConstants } from '@credebl/common/common.constant';
 
@@ -38,7 +37,6 @@ import { CommonConstants } from '@credebl/common/common.constant';
 ],
   controllers: [UserController],
   providers: [
-    AwsService,
     AzureStorageService,
     UserService,
     UserRepository,

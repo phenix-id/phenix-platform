@@ -13,7 +13,6 @@ import { BullModule } from '@nestjs/bull';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { BulkIssuanceProcessor } from './issuance.processor';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import { UserActivityRepository } from 'libs/user-activity/repositories';
 import { CommonConstants } from '@credebl/common/common.constant';
@@ -41,6 +40,6 @@ import { CommonConstants } from '@credebl/common/common.constant';
     })
   ],
   controllers: [IssuanceController],
-  providers: [IssuanceService, IssuanceRepository, UserActivityRepository, PrismaService, Logger, OutOfBandIssuance, EmailDto, BulkIssuanceProcessor, AwsService, AzureStorageService]
+  providers: [IssuanceService, IssuanceRepository, UserActivityRepository, PrismaService, Logger, OutOfBandIssuance, EmailDto, BulkIssuanceProcessor, AzureStorageService]
 })
 export class IssuanceModule { }

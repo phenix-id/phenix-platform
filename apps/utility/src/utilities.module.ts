@@ -7,7 +7,6 @@ import { PrismaService } from '@credebl/prisma-service';
 import { UtilitiesController } from './utilities.controller';
 import { UtilitiesService } from './utilities.service';
 import { UtilitiesRepository } from './utilities.repository';
-import { AwsService } from '@credebl/aws';
 import { AzureStorageService } from '@credebl/azure-storage';
 import { CommonConstants } from '@credebl/common/common.constant';
 
@@ -24,6 +23,6 @@ import { CommonConstants } from '@credebl/common/common.constant';
     CacheModule.register()
   ],
   controllers: [UtilitiesController],
-  providers: [UtilitiesService, Logger, PrismaService, UtilitiesRepository, AwsService, AzureStorageService]
+  providers: [UtilitiesService, Logger, PrismaService, UtilitiesRepository, AzureStorageService]
 })
 export class UtilitiesModule { }

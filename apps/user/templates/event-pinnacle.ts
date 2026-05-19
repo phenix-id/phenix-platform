@@ -31,11 +31,11 @@ export class EventPinnacle {
           <body style="font-family: 'Gentium Book Plus', serif; font-weight: 400; font-style: normal;">
               <div style="position: relative; margin: auto; width: fit-content;">
                   <div style="width: 1591px;min-width: 1591px;">
-                      <img style="width: 1591px;min-width: 1591px;" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/pinnacle-background.png" />
+                      <img style="width: 1591px;min-width: 1591px;" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/pinnacle-background.png" />
                   </div>
                   <div style="box-shadow: 0px 0px 25px -10px black;padding: 2rem 6rem;position: absolute;width: 1372px;min-width: 1398px;height: calc(100% - 4.45rem + 1.5px);top: 0px;">
                       <div style="position: absolute; right: 4rem; bottom: 3rem">
-                          <img style="height: 70px;" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/anniversary.svg" />
+                          <img style="height: 70px;" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/anniversary.svg" />
                       </div>
 
                         <div style="position: absolute;left: 8rem;bottom: 3rem">
@@ -43,26 +43,26 @@ export class EventPinnacle {
                         </div>
                       <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto;">
                           <div>
-                              <img style="height: 68px;" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/ayanworks-logo-invert.svg" />
+                              <img style="height: 68px;" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/ayanworks-logo-invert.svg" />
                           </div>
                           <h2 style="color: #FFFFFF; font-size: 60px; font-weight: 400;">Certificate of Appreciation</h2>
                           <h1 style="color: #FFFFFF; font-size: 86px; font-family: 'Federo', sans-serif; font-weight: 600;">- Pinnacle Performer -</h1>
                           <div style="font-size: 32px; text-align: center; max-width: 1082px;">
                               <p style="color: #342094;">this certificate is proudly presented to</p>
-                              <h1 style="font-size: 120px;font-family: 'MonteCarlo', cursive;font-weight: 400;background-image: url(https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/golden-name.svg);color: transparent;background-repeat: no-repeat;background-size: cover;background-position: top;background-clip: text;-webkit-background-clip: text;">${name}</h1>
+                              <h1 style="font-size: 120px;font-family: 'MonteCarlo', cursive;font-weight: 400;background-image: url(${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/golden-name.svg);color: transparent;background-repeat: no-repeat;background-size: cover;background-position: top;background-clip: text;-webkit-background-clip: text;">${name}</h1>
                               <p style="color: #342094;">${description}</p>
                               <p style="font-weight: bolder; color: #342094;">~  23rd March 2024  ~</p>
                           </div>
                           <div style="display: flex; justify-content: flex-end; gap: 3rem; font-size: 32px; text-align: center; margin-top: 1rem; position: absolute; bottom: 3rem; color: #342094;">
     <div style="display: flex; flex-direction: column; align-items: center;">
-        <img style="height: 99px" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/kk-sign.svg" />
+        <img style="height: 99px" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/kk-sign.svg" />
         <div style="border-top: 1px solid #000000; margin-top: -1rem; padding: 1rem 2rem 0 2rem;">
             <p>Kirankalyan Kulkarni</p>
             <p>CEO & Co-Founder</p>
         </div>
     </div>
     <div style="display: flex; flex-direction: column; align-items: center;">
-        <img style="height: 99px" src="https://credebl-dev-user-certificate.s3.ap-south-1.amazonaws.com/certificates/ak-sign.svg" />
+        <img style="height: 99px" src="${process.env.CERTIFICATE_TEMPLATE_ASSET_URL}/ak-sign.svg" />
         <div style="border-top: 1px solid #000000; margin-top: -1rem; padding: 1rem 2rem 0 2rem;">
             <p>Ajay Jadhav</p>
             <p>CTO & Co-Founder</p>
