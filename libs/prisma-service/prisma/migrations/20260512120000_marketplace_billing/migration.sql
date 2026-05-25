@@ -80,6 +80,8 @@ CREATE TABLE "marketplace_plan" (
     "planId" TEXT NOT NULL,
     "displayName" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "baseMonthlyPriceUsd" INTEGER NOT NULL DEFAULT 0,
+    "setupFeeUsd" INTEGER NOT NULL DEFAULT 0,
     "includedIssuanceTransactions" INTEGER NOT NULL DEFAULT 0,
     "includedVerificationTransactions" INTEGER NOT NULL DEFAULT 0,
     "includedSchemas" INTEGER NOT NULL DEFAULT 0,
@@ -218,6 +220,8 @@ INSERT INTO "marketplace_plan" (
     "offerId",
     "planId",
     "displayName",
+    "baseMonthlyPriceUsd",
+    "setupFeeUsd",
     "includedIssuanceTransactions",
     "includedVerificationTransactions",
     "includedSchemas",
@@ -225,6 +229,6 @@ INSERT INTO "marketplace_plan" (
     "maxUsers",
     "features"
 ) VALUES
-    ('00000000-0000-0000-0000-000000000101', 'phenix-id-platform', 'starter', 'Starter', 100, 100, 1, 1, 1, '{"schemaCreate":true,"credentialDefinitionCreate":true,"issuance":true,"bulkIssuance":true,"verification":true,"apiAccess":true}'::jsonb),
-    ('00000000-0000-0000-0000-000000000102', 'phenix-id-platform', 'business', 'Business', 1000, 1000, 5, 1, 2, '{"schemaCreate":true,"credentialDefinitionCreate":true,"issuance":true,"bulkIssuance":true,"verification":true,"apiAccess":true}'::jsonb),
-    ('00000000-0000-0000-0000-000000000103', 'phenix-id-platform', 'enterprise', 'Enterprise', 10000, 10000, 10, 5, 5, '{"schemaCreate":true,"credentialDefinitionCreate":true,"issuance":true,"bulkIssuance":true,"verification":true,"apiAccess":true}'::jsonb);
+    ('00000000-0000-0000-0000-000000000101', 'phenix-id-platform', 'starter', 'Starter', 550, 30000, 1000, 1000, 1, 1, 1, '{"schemaCreate":true,"credentialDefinitionCreate":true,"issuance":true,"bulkIssuance":true,"verification":true,"apiAccess":true}'::jsonb),
+    ('00000000-0000-0000-0000-000000000102', 'phenix-id-platform', 'business', 'Business', 2750, 30000, 5000, 5000, 5, 1, 2, '{"schemaCreate":true,"credentialDefinitionCreate":true,"issuance":true,"bulkIssuance":true,"verification":true,"apiAccess":true}'::jsonb),
+    ('00000000-0000-0000-0000-000000000103', 'phenix-id-platform', 'enterprise', 'Enterprise', 5500, 30000, 10000, 10000, 10, 5, 5, '{"schemaCreate":true,"credentialDefinitionCreate":true,"issuance":true,"bulkIssuance":true,"verification":true,"apiAccess":true}'::jsonb);

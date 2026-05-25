@@ -16,6 +16,8 @@ import { MeteringService } from './services/metering.service';
 import { MicrosoftMarketplaceClient } from './services/microsoft-marketplace.client';
 import { WebhookService } from './services/webhook.service';
 
+const SETUP_FEE_USD = 30000;
+
 interface LinkAccountMessage {
   sessionId: string;
   payload: {
@@ -149,6 +151,7 @@ export class MarketplaceService extends BaseService {
     if (session.subscription.saasSubscriptionStatus === 'Subscribed') {
       await this.marketplaceRepository.setActivationStatus(session.subscription.id, 'activated');
       await this.marketplaceRepository.updateOnboardingSession(session.id, 'activated');
+      await this.recordSetupFeeUsage(session.subscription, message.orgId);
       return {
         subscriptionId: session.subscription.marketplaceSubscriptionId,
         orgId: message.orgId,
@@ -165,6 +168,7 @@ export class MarketplaceService extends BaseService {
         await this.marketplaceRepository.setSubscriptionStatus(session.subscription.id, 'Subscribed');
         await this.marketplaceRepository.setActivationStatus(session.subscription.id, 'activated');
         await this.marketplaceRepository.updateOnboardingSession(session.id, 'activated');
+        await this.recordSetupFeeUsage(session.subscription, message.orgId);
         return {
           subscriptionId: session.subscription.marketplaceSubscriptionId,
           orgId: message.orgId,
@@ -191,6 +195,9 @@ export class MarketplaceService extends BaseService {
         session.id,
         activated ? 'activated' : 'activation_pending'
       );
+      if (activated) {
+        await this.recordSetupFeeUsage(updated, message.orgId);
+      }
 
       return {
         subscriptionId: updated.marketplaceSubscriptionId,
@@ -367,10 +374,28 @@ export class MarketplaceService extends BaseService {
 
   private displayNameForDimension(dimension: string): string {
     const displayNames = {
+      setup_fee: 'One-time setup fee',
       issuance_txn: 'Credential issuance',
       verification_txn: 'Credential verification',
       schema_create: 'Schema creation'
     };
     return displayNames[dimension] || dimension;
+  }
+
+  private async recordSetupFeeUsage(subscription, orgId: string): Promise<void> {
+    await this.marketplaceRepository.recordBillingUsageEvent(
+      {
+        orgId,
+        eventType: 'organization_setup_completed',
+        sourceTable: 'marketplace_subscription',
+        sourceId: subscription.id,
+        quantity: 1,
+        metadata: {
+          dimension: 'setup_fee',
+          unitPriceUsd: SETUP_FEE_USD
+        }
+      },
+      subscription.id
+    );
   }
 }

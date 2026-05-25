@@ -754,6 +754,8 @@ model marketplace_plan {
   planId                           String
   displayName                      String
   isActive                         Boolean  @default(true)
+  baseMonthlyPriceUsd              Int      @default(0)
+  setupFeeUsd                      Int      @default(0)
   includedIssuanceTransactions     Int      @default(0)
   includedVerificationTransactions Int      @default(0)
   includedSchemas                  Int      @default(0)
