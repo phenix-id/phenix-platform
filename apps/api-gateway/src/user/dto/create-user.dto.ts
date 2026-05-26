@@ -14,12 +14,14 @@ export class UserEmailVerificationDto {
     email: string;
 
     @ApiProperty({ example: 'xxxx-xxxx-xxxx' })
+    @IsOptional()
     @IsString({ message: 'clientId should be string' })
-    clientId: string;
+    clientId?: string;
 
     @ApiProperty({ example: 'xxxx-xxxxx-xxxxx' })
+    @IsOptional()
     @IsString({ message: 'clientSecret should be string' })
-    clientSecret: string;
+    clientSecret?: string;
 
     @ApiPropertyOptional({ example: 'https://example.com/logo.png' })
     @Transform(({ value }) => trim(value))
