@@ -85,6 +85,17 @@ export class AuthzController {
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Created', type: ApiResponseDto })
   @ApiOperation({ summary: 'Send verification email', description: 'Send verification email to new user' })
   async create(@Body() userEmailVerification: UserEmailVerificationDto, @Res() res: Response): Promise<Response> {
+    if (!userEmailVerification.clientId || !userEmailVerification.clientSecret) {
+      const { KEYCLOAK_MANAGEMENT_CLIENT_ID, KEYCLOAK_MANAGEMENT_CLIENT_SECRET } = process.env;
+
+      if (!KEYCLOAK_MANAGEMENT_CLIENT_ID || !KEYCLOAK_MANAGEMENT_CLIENT_SECRET) {
+        throw new BadRequestException('Client credentials are not configured');
+      }
+
+      userEmailVerification.clientId = this.commonService.dataEncryption(KEYCLOAK_MANAGEMENT_CLIENT_ID);
+      userEmailVerification.clientSecret = this.commonService.dataEncryption(KEYCLOAK_MANAGEMENT_CLIENT_SECRET);
+    }
+
     await this.authzService.sendVerificationMail(userEmailVerification);
     const finalResponse: IResponseType = {
       statusCode: HttpStatus.CREATED,

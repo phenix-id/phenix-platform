@@ -15,8 +15,8 @@ RUN pnpm install
 
 # Copy the rest of the application code
 COPY . .
-# RUN cd libs/prisma-service && npx prisma migrate deploy && npx prisma generate
-RUN cd libs/prisma-service && npx prisma migrate deploy && npx prisma generate
+# RUN cd libs/prisma-service && npx prisma generate
+RUN cd libs/prisma-service && npx prisma generate
 
 # Build the user service
 RUN pnpm run build utility
@@ -29,14 +29,17 @@ RUN apt-get --no-install-recommends install -y openssl
 # Set the working directory
 WORKDIR /app
 RUN npm install -g pnpm
+COPY package.json ./
+RUN pnpm install --prod --ignore-scripts \
+    && pnpm store prune \
+    && rm -rf /root/.local/share/pnpm/store
 
 # Copy the compiled code from the build stage
 COPY --from=build /app/dist/apps/utility/ ./dist/apps/utility/
 
 # Copy the libs folder from the build stage
 COPY --from=build /app/libs/ ./libs/
-#COPY --from=build /app/package.json ./  
-COPY --from=build /app/node_modules  ./node_modules
+RUN cd libs/prisma-service && npx prisma generate
 
 
 # Set the command to run the microservice
