@@ -35,7 +35,7 @@ import { AgentSpinupDto } from './dto/agent-service.dto';
 import { Response } from 'express';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { user } from '@prisma/client';
-import { CreateTenantDto } from './dto/create-tenant.dto';
+import { CreateWalletDto } from './dto/create-wallet.dto';
 import { User } from '../authz/decorators/user.decorator';
 import { CustomExceptionFilter } from 'apps/api-gateway/common/exception-handler';
 import { Roles } from '../authz/decorators/roles.decorator';
@@ -155,13 +155,13 @@ export class AgentController {
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Success', type: ApiResponseDto })
   async createTenant(
     @Param('orgId') orgId: string,
-    @Body() createTenantDto: CreateTenantDto,
+    @Body() createWalletDto: CreateWalletDto,
     @User() user: user,
     @Res() res: Response
   ): Promise<Response> {
-    createTenantDto.orgId = orgId;
+    createWalletDto.orgId = orgId;
 
-    const tenantDetails = await this.agentService.createTenant(createTenantDto, user);
+    const tenantDetails = await this.agentService.createTenant(createWalletDto, user);
 
     const finalResponse: IResponse = {
       statusCode: HttpStatus.CREATED,

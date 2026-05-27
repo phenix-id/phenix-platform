@@ -801,44 +801,12 @@ export class AgentServiceService {
    */
   async _createTenant(payload: ITenantDto, user: IUserRequestInterface): Promise<void> {
     let agentProcess;
-    let ledgerIdData = [];
     try {
-      let ledger;
-        const { network } = payload;
-        if (network) {
-          ledger = await ledgerName(network);
-        } else {
-          ledger = Ledgers.Not_Applicable;
-        }
-
-        const ledgerList = (await this._getALlLedgerDetails()) as unknown as LedgerListResponse;
-        const isLedgerExist = ledgerList.response.find((existingLedgers) => existingLedgers.name === ledger);
-        if (!isLedgerExist) {
-          throw new BadRequestException(ResponseMessages.agent.error.invalidLedger, {
-            cause: new Error(),
-            description: ResponseMessages.errorMessages.notFound
-          });
-        }
-        ledgerIdData = await this.agentServiceRepository.getLedgerDetails(ledger);
-  
-      const agentSpinUpStatus = AgentSpinUpStatus.PROCESSED;
-
-      // Create and stored agent details
-      agentProcess = await this.agentServiceRepository.createOrgAgent(agentSpinUpStatus, user?.id);
+      // Create and store initial agent record
+      agentProcess = await this.agentServiceRepository.createOrgAgent(AgentSpinUpStatus.PROCESSED, user?.id);
 
       // Get platform admin details
       const platformAdminSpinnedUp = await this.getPlatformAdminAndNotify(payload.clientSocketId);
-
-      payload.endpoint = platformAdminSpinnedUp.org_agents[0].agentEndPoint;
-      // Create tenant wallet and DID
-      const tenantDetails = await this.createTenantAndNotify(payload, platformAdminSpinnedUp);
-      if (!tenantDetails?.walletResponseDetails?.id || !tenantDetails?.DIDCreationOption?.did) {
-        this.logger.error(`Error in getting wallet id and wallet did`);
-        throw new NotFoundException(ResponseMessages.agent.error.notAbleToSpinUpAgent, {
-          cause: new Error(),
-          description: ResponseMessages.errorMessages.notFound
-        });
-      }
 
       if (AgentSpinUpStatus.COMPLETED !== platformAdminSpinnedUp.org_agents[0].agentSpinUpStatus) {
         this.logger.error(`Platform-admin agent is not spun-up`);
@@ -847,50 +815,34 @@ export class AgentServiceService {
           description: ResponseMessages.errorMessages.notFound
         });
       }
-      // Get shared agent type
+
+      // Create tenant wallet only — DID is created separately via POST /agents/did
+      const walletResponseDetails = await this.createTenantAndNotify(payload, platformAdminSpinnedUp);
+      if (!walletResponseDetails?.id) {
+        this.logger.error(`Error in getting wallet id`);
+        throw new NotFoundException(ResponseMessages.agent.error.notAbleToSpinUpAgent, {
+          cause: new Error(),
+          description: ResponseMessages.errorMessages.notFound
+        });
+      }
+
       const orgAgentTypeId = await this.agentServiceRepository.getOrgAgentTypeDetails(OrgAgentType.SHARED);
-      // Get agent type details
       const agentTypeId = await this.agentServiceRepository.getAgentTypeId(AgentType.AFJ);
 
       const storeOrgAgentData: IStoreOrgAgentDetails = {
-        did: tenantDetails.DIDCreationOption.did,
-        isDidPublic: true,
-        didDoc: tenantDetails.DIDCreationOption.didDocument || tenantDetails.DIDCreationOption.didDoc, //changed the didDoc into didDocument
         agentSpinUpStatus: AgentSpinUpStatus.COMPLETED,
         agentsTypeId: agentTypeId,
         orgId: payload.orgId,
         agentEndPoint: platformAdminSpinnedUp.org_agents[0].agentEndPoint,
         orgAgentTypeId,
-        tenantId: tenantDetails.walletResponseDetails['id'],
+        tenantId: walletResponseDetails['id'],
         walletName: payload.label,
-        ledgerId: ledgerIdData.map((item) => item.id),
         id: agentProcess?.id
       };
 
-      // Get organization data
-      const getOrganization = await this.agentServiceRepository.getOrgDetails(payload.orgId);
-
       this.notifyClientSocket('agent-spinup-process-completed', payload.clientSocketId);
 
-      const orgAgentDetails = await this.agentServiceRepository.storeOrgAgentDetails(storeOrgAgentData);
-
-      const createdDidDetails = {
-        orgId: payload.orgId,
-        did: tenantDetails.DIDCreationOption.did,
-        didDocument: tenantDetails.DIDCreationOption.didDocument || tenantDetails.DIDCreationOption.didDoc,
-        isPrimaryDid: true,
-        orgAgentId: orgAgentDetails.id,
-        userId: user.id
-      };
-
-      await this.agentServiceRepository.storeDidDetails(createdDidDetails);
-
-      this.notifyClientSocket('invitation-url-creation-started', payload.clientSocketId);
-
-      // Create the legacy connection invitation
-      await this._createConnectionInvitation(payload.orgId, user, getOrganization.name);
-
-      this.notifyClientSocket('invitation-url-creation-success', payload.clientSocketId);
+      await this.agentServiceRepository.storeOrgAgentDetails(storeOrgAgentData);
     } catch (error) {
       this.handleError(error, payload.clientSocketId);
 
@@ -985,6 +937,11 @@ export class AgentServiceService {
 
       if (isPrimaryDid) {
         await this.setPrimaryDidAndLedger(orgId, storeDidDetails, createDidPayload.network, createDidPayload.method);
+        const hasInvitation = await this.agentServiceRepository.getOrgConnectionInvitation(orgId);
+        if (!hasInvitation) {
+          const getOrganization = await this.agentServiceRepository.getOrgDetails(orgId);
+          await this._createConnectionInvitation(orgId, user, getOrganization.name);
+        }
       }
 
       return storeDidDetails;
@@ -1149,39 +1106,22 @@ export class AgentServiceService {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async createTenantAndNotify(payload: ITenantDto, platformAdminSpinnedUp: IOrgAgentsResponse): Promise<any> {
-    const WalletSetupPayload = { ...payload };
     const socket = await this.createSocketInstance();
-    if (WalletSetupPayload.clientSocketId) {
-      socket.emit('agent-spinup-process-initiated', { clientId: WalletSetupPayload.clientSocketId });
+    if (payload.clientSocketId) {
+      socket.emit('agent-spinup-process-initiated', { clientId: payload.clientSocketId });
     }
-    const walletLabel = WalletSetupPayload.label;
-
-    delete WalletSetupPayload.label;
-    delete WalletSetupPayload.clientSocketId;
-    delete WalletSetupPayload.orgId;
-    delete WalletSetupPayload.ledgerId;
 
     const getDcryptedToken = await this.commonService.decryptPassword(platformAdminSpinnedUp?.org_agents[0].apiKey);
     const walletResponseDetails = await this._createTenantWallet(
-      walletLabel,
+      payload.label,
       platformAdminSpinnedUp.org_agents[0].agentEndPoint,
       getDcryptedToken
     );
-    if (!walletResponseDetails && !walletResponseDetails.id) {
-      throw new InternalServerErrorException('Error while creating the wallet');
-    }
-    const didCreateOption = {
-      didPayload: WalletSetupPayload,
-      agentEndpoint: platformAdminSpinnedUp.org_agents[0].agentEndPoint,
-      apiKey: getDcryptedToken,
-      tenantId: walletResponseDetails.id
-    };
-    const DIDCreationOption = await this._createDID(didCreateOption);
-    if (!DIDCreationOption) {
+    if (!walletResponseDetails?.id) {
       throw new InternalServerErrorException('Error while creating the wallet');
     }
 
-    return { walletResponseDetails, DIDCreationOption };
+    return walletResponseDetails;
   }
   //
 

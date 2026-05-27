@@ -486,6 +486,11 @@ export class AgentServiceRepository {
     }
   }
 
+  async getOrgConnectionInvitation(orgId: string): Promise<boolean> {
+    const invitation = await this.prisma.agent_invitations.findFirst({ where: { orgId } });
+    return !!invitation;
+  }
+
   async deleteOrgAgentByOrg(orgId: string): Promise<{orgDid: Prisma.BatchPayload;
     agentInvitation: Prisma.BatchPayload;
     // eslint-disable-next-line camelcase

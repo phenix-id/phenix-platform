@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\")",
+      "Bash(find \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\" -type f -name \"*agent-service*controller.ts\" -o -name \"*agent-service*service.ts\")",
+      "Bash(grep -n \"async createDid\\\\|async createTenant\\\\|async createWallet\\\\|async createSecp256k1KeyPair\" \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\\\\agent-service\\\\src\\\\agent-service.service.ts\")",
+      "Bash(find \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\\\\agent-service\\\\src\" -type f -name \"*interface*\")",
+      "Bash(find \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\" -type f -name \"schema.prisma\" -o -name \"*.prisma\")",
+      "Bash(grep -rn \"protocol\\\\|credentialType\\\\|credential_type\" \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\\\\agent-service\\\\src\")",
+      "Bash(grep -n \"prepareWalletProvisionPayload\\\\|IWalletProvision\" \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\\\\agent-service\\\\src\\\\agent-service.service.ts\")",
+      "Bash(grep -rn \"CREATE_POLYGON_SECP256k1_KEY\\\\|polygon\" \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\\\\agent-service\\\\src\\\\agent-service.service.ts\")",
+      "Bash(find \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\" -type f -name \"*.ts\" -path \"*common*\")",
+      "Bash(xargs grep -l \"CREATE_POLYGON_SECP256k1_KEY\\\\|URL_AGENT_WRITE_DID\")",
+      "Bash(grep -rn \"credentialType\" \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\")",
+      "Bash(grep -rn \"protocol\\\\|credentialType\" \"\\\\\\\\wsl.localhost\\\\ubuntu\\\\home\\\\tashi\\\\projects\\\\work\\\\phenix-platform\\\\apps\\\\api-gateway\\\\src\\\\agent-service\")"
+    ]
+  }
+}
