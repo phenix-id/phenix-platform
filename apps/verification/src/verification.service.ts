@@ -703,7 +703,7 @@ export class VerificationService {
           url = orgAgentType === OrgAgentType.DEDICATED
             ? `${agentEndPoint}${CommonConstants.URL_VERIFY_PRESENTATION}`.replace('#', proofPresentationId)
             : orgAgentType === OrgAgentType.SHARED
-              ? `${agentEndPoint}${CommonConstants.URL_SHAGENT_ACCEPT_PRESENTATION}`.replace('@', proofPresentationId).replace('#', tenantId)
+              ? `${agentEndPoint}${CommonConstants.URL_SHAGENT_ACCEPT_PRESENTATION}`.replace('#', proofPresentationId)
               : null;
           break;
         }
@@ -721,7 +721,7 @@ export class VerificationService {
           url = orgAgentType === OrgAgentType.DEDICATED
             ? `${agentEndPoint}${CommonConstants.URL_PROOF_FORM_DATA}`.replace('#', proofPresentationId)
             : orgAgentType === OrgAgentType.SHARED
-              ? `${agentEndPoint}${CommonConstants.URL_SHAGENT_PROOF_FORM_DATA}`.replace('@', proofPresentationId).replace('#', tenantId)
+              ? `${agentEndPoint}${CommonConstants.URL_SHAGENT_PROOF_FORM_DATA}`.replace('#', proofPresentationId)
               : null;
           break;
         }
