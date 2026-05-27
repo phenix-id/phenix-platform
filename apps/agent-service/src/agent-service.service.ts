@@ -1416,7 +1416,7 @@ export class AgentServiceService {
 
   async sendCredentialCreateOffer(issueData: IIssuanceCreateOffer, url: string, orgId: string): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const data = await this.commonService
         .httpPost(url, issueData, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1463,7 +1463,7 @@ export class AgentServiceService {
 
   async getIssueCredentialsbyCredentialRecordId(url: string, orgId: string): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const data = await this.commonService
         .httpGet(url, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1480,7 +1480,7 @@ export class AgentServiceService {
     orgId: string
   ): Promise<IAgentProofRequest> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const sendProofRequest = await this.commonService
         .httpPost(url, proofRequestPayload, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1493,7 +1493,7 @@ export class AgentServiceService {
 
   async verifyPresentation(url: string, orgId: string): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const verifyPresentation = await this.commonService
         .httpPost(url, '', { headers: { authorization: getApiKey } })
         .then(async (response) => response)
@@ -1507,7 +1507,7 @@ export class AgentServiceService {
 
   async getConnections(url: string, orgId: string): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const data = await this.commonService
         .httpGet(url, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1586,7 +1586,7 @@ export class AgentServiceService {
     orgId: string
   ): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const sendProofRequest = await this.commonService
         .httpPost(url, proofRequestPayload, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1669,7 +1669,7 @@ export class AgentServiceService {
     orgId: string
   ): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const sendOutOfbandCredentialOffer = await this.commonService
         .httpPost(url, outOfBandIssuancePayload, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1760,7 +1760,7 @@ export class AgentServiceService {
 
   async receiveInvitationUrl(receiveInvitationUrl: IReceiveInvitationUrl, url: string, orgId: string): Promise<string> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const receiveInvitationUrlRes = await this.commonService
         .httpPost(url, receiveInvitationUrl, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1773,7 +1773,7 @@ export class AgentServiceService {
 
   async receiveInvitation(receiveInvitation: IReceiveInvitation, url: string, orgId: string): Promise<string> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const receiveInvitationRes = await this.commonService
         .httpPost(url, receiveInvitation, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1782,6 +1782,18 @@ export class AgentServiceService {
       this.logger.error(`Error in receive invitation in agent service : ${JSON.stringify(error)}`);
       throw error;
     }
+  }
+
+  async getDidCommAgentApiKey(orgId: string): Promise<string> {
+    const rootApiKey = await this.getOrgAgentApiKey(orgId);
+    const agentDetails = await this.agentServiceRepository.getOrgAgentDetails(orgId);
+    const orgAgentType = await this.agentServiceRepository.getOrgAgentType(agentDetails?.orgAgentTypeId);
+
+    if (orgAgentType?.agent === OrgAgentType.SHARED) {
+      return this.getTenantAgentApiKey(agentDetails.agentEndPoint, agentDetails.tenantId, rootApiKey);
+    }
+
+    return rootApiKey;
   }
 
   async getOrgAgentApiKey(orgId: string): Promise<string> {
@@ -1826,7 +1838,7 @@ export class AgentServiceService {
 
   async sendQuestion(questionPayload: IQuestionPayload, url: string, orgId: string): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const sendQuestionRes = await this.commonService
         .httpPost(url, questionPayload, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1839,7 +1851,7 @@ export class AgentServiceService {
 
   async sendBasicMessage(messagePayload: IBasicMessage, url: string, orgId: string): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const getApiKey = await this.getDidCommAgentApiKey(orgId);
       const basicMessageRes = await this.commonService
         .httpPost(url, messagePayload, { headers: { authorization: getApiKey } })
         .then(async (response) => response);
@@ -1861,7 +1873,7 @@ export class AgentServiceService {
   }
 
   async agentCall(url: string, orgId: string): Promise<object> {
-    const getApiKey = await this.getOrgAgentApiKey(orgId);
+    const getApiKey = await this.getDidCommAgentApiKey(orgId);
 
     const data = await this.commonService
       .httpGet(url, { headers: { authorization: getApiKey } })
@@ -1890,13 +1902,7 @@ export class AgentServiceService {
     connectionPayload: ICreateConnectionInvitation
   ): Promise<object> {
     try {
-      const getApiKey = await this.getOrgAgentApiKey(orgId);
-      const agentDetails = await this.agentServiceRepository.getOrgAgentDetails(orgId);
-      const getOrgAgentType = await this.agentServiceRepository.getOrgAgentType(agentDetails?.orgAgentTypeId);
-      const invitationApiKey =
-        getOrgAgentType.agent === OrgAgentType.SHARED
-          ? await this.getTenantAgentApiKey(agentDetails.agentEndPoint, agentDetails.tenantId, getApiKey)
-          : getApiKey;
+      const invitationApiKey = await this.getDidCommAgentApiKey(orgId);
 
       const createConnectionInvitation = await this.commonService
         .httpPost(url, connectionPayload, { headers: { authorization: invitationApiKey } })

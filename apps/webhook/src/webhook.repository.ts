@@ -33,20 +33,21 @@ export class WebhookRepository {
     try {
 
       const { tenantId, orgId } = getWebhook;
+      const normalizedTenantId = this.normalizeTenantId(tenantId);
       let webhookUrlInfo;
 
-      if ((undefined === tenantId || 'default' === tenantId) && orgId) {
+      if ((undefined === normalizedTenantId || 'default' === normalizedTenantId) && orgId) {
         webhookUrlInfo = await this.prisma.org_agents.findFirstOrThrow({
 
           where: {
             orgId
           }
         });
-      } else if (tenantId && 'default' !== tenantId) {
+      } else if (normalizedTenantId && 'default' !== normalizedTenantId) {
         webhookUrlInfo = await this.prisma.org_agents.findFirstOrThrow({
 
           where: {
-            tenantId
+            tenantId: normalizedTenantId
           }
         });
       }
@@ -56,6 +57,16 @@ export class WebhookRepository {
       this.logger.error(`[getWebhookUrl] -  webhook url details: ${JSON.stringify(error)}`);
       throw error;
     }
+  }
+
+  private normalizeTenantId(tenantId?: string): string | undefined {
+    const normalizedTenantId = tenantId?.trim();
+
+    if (!normalizedTenantId) {
+      return undefined;
+    }
+
+    return normalizedTenantId.startsWith('tenant-') ? normalizedTenantId.slice('tenant-'.length) : normalizedTenantId;
   }
 
   async getOrganizationDetails(orgId: string): Promise<org_agents> {

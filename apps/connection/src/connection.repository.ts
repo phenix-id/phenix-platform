@@ -118,15 +118,19 @@ export class ConnectionRepository {
     try {
       let organisationId;
       const { connectionDto, orgId } = payload;
+      const connectionWebhook = connectionDto as typeof connectionDto & {
+        connection_id?: string;
+        their_label?: string;
+        createdAt?: string;
+        updatedAt?: string;
+      };
+      const connectionId = connectionWebhook?.id || connectionWebhook?.connection_id;
+      const createDateTime = connectionWebhook?.createDateTime || connectionWebhook?.createdAt;
+      const lastChangedDateTime = connectionWebhook?.lastChangedDateTime || connectionWebhook?.updatedAt;
 
-      if ('default' !== connectionDto?.contextCorrelationId) {
-        const getOrganizationId = await this.getOrganization(connectionDto?.contextCorrelationId);
-        organisationId = getOrganizationId?.orgId;
-      } else {
-        organisationId = orgId;
-      }
+      organisationId = await this.resolveOrganisationId(connectionDto?.contextCorrelationId, connectionDto?.orgId || orgId);
 
-      const walletLabelName = connectionDto?.theirLabel;
+      const walletLabelName = connectionWebhook?.theirLabel || connectionWebhook?.their_label || '';
       let maskedTheirLabel: string;
       let firstLetters: string;
       let maskedMiddleLetters: string;
@@ -167,19 +171,21 @@ export class ConnectionRepository {
 
       return this.prisma.connections.upsert({
         where: {
-          connectionId: connectionDto?.id
+          connectionId
         },
         update: {
-          lastChangedDateTime: connectionDto?.lastChangedDateTime,
+          lastChangedDateTime,
+          orgId: organisationId,
+          createdBy: organisationId,
           lastChangedBy: organisationId,
           state: connectionDto?.state
         },
         create: {
-          createDateTime: connectionDto?.createDateTime,
-          lastChangedDateTime: connectionDto?.lastChangedDateTime,
+          createDateTime,
+          lastChangedDateTime,
           createdBy: organisationId,
           lastChangedBy: organisationId,
-          connectionId: connectionDto?.id,
+          connectionId,
           state: connectionDto?.state,
           theirLabel: maskedTheirLabel,
           orgId: organisationId
@@ -224,6 +230,36 @@ export class ConnectionRepository {
       this.logger.error(`Error in getOrganization in connection repository: ${error.message} `);
       throw error;
     }
+  }
+
+  private async resolveOrganisationId(contextCorrelationId: string, fallbackOrgId: string): Promise<string> {
+    const tenantId = this.normalizeTenantId(contextCorrelationId);
+
+    if (tenantId && 'default' !== tenantId) {
+      const organization = await this.getOrganization(tenantId);
+
+      if (organization?.orgId) {
+        return organization.orgId;
+      }
+
+      throw new Error(`Unable to resolve organization from tenantId ${tenantId}`);
+    }
+
+    if (!fallbackOrgId) {
+      throw new Error('Unable to resolve organization for connection webhook');
+    }
+
+    return fallbackOrgId;
+  }
+
+  private normalizeTenantId(tenantId?: string): string | undefined {
+    const normalizedTenantId = tenantId?.trim();
+
+    if (!normalizedTenantId) {
+      return undefined;
+    }
+
+    return normalizedTenantId.startsWith('tenant-') ? normalizedTenantId.slice('tenant-'.length) : normalizedTenantId;
   }
 
   /**

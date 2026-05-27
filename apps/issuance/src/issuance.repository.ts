@@ -173,13 +173,17 @@ export class IssuanceRepository {
     try {
       let organisationId: string;
       const { issueCredentialDto, id } = payload;
+      const credentialWebhook = issueCredentialDto as typeof issueCredentialDto & {
+        createdAt?: string;
+        updatedAt?: string;
+      };
 
-      if ('default' !== issueCredentialDto?.contextCorrelationId) {
-        const getOrganizationId = await this.getOrganizationByTenantId(issueCredentialDto?.contextCorrelationId);
-        organisationId = getOrganizationId?.orgId;
-      } else {
-        organisationId = id;
-      }
+      organisationId = await this.resolveOrganisationId(issueCredentialDto?.contextCorrelationId, issueCredentialDto?.orgId || id);
+      const credentialTags = issueCredentialDto?.['_tags'];
+      const connectionId = issueCredentialDto?.connectionId || credentialTags?.connectionId;
+      const threadId = issueCredentialDto?.threadId || credentialTags?.threadId || issueCredentialDto?.id;
+      const state = issueCredentialDto?.state || credentialTags?.state;
+      const createDateTime = issueCredentialDto?.createDateTime || credentialWebhook?.createdAt;
 
       let schemaId = '';
 
@@ -199,27 +203,29 @@ export class IssuanceRepository {
 
       const credentialDetails = await this.prisma.credentials.upsert({
         where: {
-          threadId: issueCredentialDto?.threadId
+          threadId
         },
         update: {
+          orgId: organisationId,
+          createdBy: organisationId,
           lastChangedBy: organisationId,
-          createDateTime: issueCredentialDto?.createDateTime,
-          threadId: issueCredentialDto?.threadId,
-          connectionId: issueCredentialDto?.connectionId,
-          state: issueCredentialDto?.state,
+          createDateTime,
+          threadId,
+          connectionId,
+          state,
           schemaId,
           credDefId
         },
         create: {
-          createDateTime: issueCredentialDto?.createDateTime,
+          createDateTime,
           lastChangedBy: organisationId,
           createdBy: organisationId,
-          connectionId: issueCredentialDto?.connectionId,
-          state: issueCredentialDto?.state,
-          threadId: issueCredentialDto?.threadId,
+          connectionId,
+          state,
+          threadId,
           schemaId,
           credDefId,
-          credentialExchangeId: issueCredentialDto?.id,
+          credentialExchangeId: issueCredentialDto?.id || threadId,
           orgId: organisationId
         }
       });
@@ -229,6 +235,36 @@ export class IssuanceRepository {
       this.logger.error(`Error in get saveIssuedCredentialDetails: ${error.message} `);
       throw error;
     }
+  }
+
+  private async resolveOrganisationId(contextCorrelationId: string, fallbackOrgId: string): Promise<string> {
+    const tenantId = this.normalizeTenantId(contextCorrelationId);
+
+    if (tenantId && 'default' !== tenantId) {
+      const organization = await this.getOrganizationByTenantId(tenantId);
+
+      if (organization?.orgId) {
+        return organization.orgId;
+      }
+
+      throw new Error(`Unable to resolve organization from tenantId ${tenantId}`);
+    }
+
+    if (!fallbackOrgId) {
+      throw new Error('Unable to resolve organization for issuance webhook');
+    }
+
+    return fallbackOrgId;
+  }
+
+  private normalizeTenantId(tenantId?: string): string | undefined {
+    const normalizedTenantId = tenantId?.trim();
+
+    if (!normalizedTenantId) {
+      return undefined;
+    }
+
+    return normalizedTenantId.startsWith('tenant-') ? normalizedTenantId.slice('tenant-'.length) : normalizedTenantId;
   }
 
   /**

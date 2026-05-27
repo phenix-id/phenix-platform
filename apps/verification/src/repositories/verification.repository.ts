@@ -144,31 +144,32 @@ export class VerificationRepository {
         schemaId = proofPresentationPayload?.['proofData']?.request?.presentationExchange?.presentation_definition?.input_descriptors[0].schema[0].uri;
       }
 
-      if ('default' !== proofPresentationPayload?.contextCorrelationId) {
-        const getOrganizationId = await this.getOrganizationByTenantId(proofPresentationPayload?.contextCorrelationId);
-        organisationId = getOrganizationId?.orgId;
-      } else {
-        organisationId = orgId;
-      }
+      organisationId = await this.resolveOrganisationId(proofPresentationPayload?.contextCorrelationId, proofPresentationPayload?.['orgId'] || orgId);
+      const proofTags = proofPresentationPayload?._tags;
+      const threadId = proofPresentationPayload?.threadId || proofTags?.threadId || proofPresentationPayload?.id;
+      const connectionId = proofPresentationPayload?.connectionId || proofTags?.connectionId;
+      const state = proofPresentationPayload?.state || proofTags?.state;
       
       const proofPresentationsDetails = await this.prisma.presentations.upsert({
         where: {
-          threadId: proofPresentationPayload?.threadId
+          threadId
         },
         update: {
-          state: proofPresentationPayload.state,
-          threadId: proofPresentationPayload.threadId,
+          orgId: organisationId,
+          createdBy: organisationId,
+          state,
+          threadId,
           isVerified: proofPresentationPayload.isVerified,
           lastChangedBy: organisationId,
-          connectionId: proofPresentationPayload.connectionId,
+          connectionId,
           emailId: encryptEmailId
         },
         create: {
-          connectionId: proofPresentationPayload.connectionId,
+          connectionId,
           createdBy: organisationId,
           lastChangedBy: organisationId,
-          state: proofPresentationPayload.state,
-          threadId: proofPresentationPayload.threadId,
+          state,
+          threadId,
           isVerified: proofPresentationPayload.isVerified,
           presentationId: proofPresentationPayload.id,
           orgId: organisationId,
@@ -181,6 +182,36 @@ export class VerificationRepository {
       this.logger.error(`Error in get saveProofPresentationDetails: ${error.message} `);
       throw error;
     }
+  }
+
+  private async resolveOrganisationId(contextCorrelationId: string, fallbackOrgId: string): Promise<string> {
+    const tenantId = this.normalizeTenantId(contextCorrelationId);
+
+    if (tenantId && 'default' !== tenantId) {
+      const organization = await this.getOrganizationByTenantId(tenantId);
+
+      if (organization?.orgId) {
+        return organization.orgId;
+      }
+
+      throw new Error(`Unable to resolve organization from tenantId ${tenantId}`);
+    }
+
+    if (!fallbackOrgId) {
+      throw new Error('Unable to resolve organization for verification webhook');
+    }
+
+    return fallbackOrgId;
+  }
+
+  private normalizeTenantId(tenantId?: string): string | undefined {
+    const normalizedTenantId = tenantId?.trim();
+
+    if (!normalizedTenantId) {
+      return undefined;
+    }
+
+    return normalizedTenantId.startsWith('tenant-') ? normalizedTenantId.slice('tenant-'.length) : normalizedTenantId;
   }
 
   /**
