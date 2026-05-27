@@ -63,7 +63,7 @@ export class WebhookService {
         planId: payload.planId,
         quantity: payload.quantity,
         rawPayload: JSON.parse(JSON.stringify(payload)),
-        ackStatus: ['ChangePlan', 'ChangeQuantity'].includes(payload.action) ? 'pending' : 'not_required'
+        ackStatus: ['ChangePlan', 'ChangeQuantity', 'Reinstate'].includes(payload.action) ? 'pending' : 'not_required'
       });
     }
 
@@ -85,9 +85,16 @@ export class WebhookService {
       return;
     }
 
-    if (payload.action === 'Renew' || payload.action === 'Reinstate') {
+    if (payload.action === 'Renew') {
       const latest = await this.microsoftMarketplaceClient.getSubscription(payload.subscriptionId);
       await this.marketplaceRepository.updateSubscriptionFromMicrosoft(latest);
+      return;
+    }
+
+    if (payload.action === 'Reinstate') {
+      const latest = await this.microsoftMarketplaceClient.getSubscription(payload.subscriptionId);
+      await this.marketplaceRepository.updateSubscriptionFromMicrosoft(latest);
+      await this.patchOperationIfNeeded(payload, true);
       return;
     }
 

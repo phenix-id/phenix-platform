@@ -72,13 +72,54 @@ export class MeteringService {
       }))
     );
 
-    for (const event of eligibleEvents) {
-      await this.marketplaceRepository.updateUsageEventStatus(event.id, 'submitted', {
-        status: 'submitted',
-        message: JSON.stringify(response.data),
-        requestId: response.requestId,
-        correlationId: response.correlationId
-      });
+    // Microsoft returns a per-event result array. Index i in result[] corresponds to
+    // index i in the submitted batch. Status values: "Accepted" | "Duplicate" | "Error".
+    const batchResult = response.data as {
+      count?: number;
+      result?: Array<{ status?: string; error?: { code?: string; message?: string } }>;
+    };
+    const results = batchResult?.result ?? [];
+
+    for (let i = 0; i < eligibleEvents.length; i++) {
+      const event = eligibleEvents[i];
+      const eventResult = results[i];
+
+      if (!eventResult) {
+        this.logger.warn(`[submitPendingUsage] No result at index ${i} for event ${event.id} — marking failed`);
+        await this.marketplaceRepository.updateUsageEventStatus(event.id, 'failed', {
+          message: 'No per-event result in Microsoft batch response',
+          requestId: response.requestId,
+          correlationId: response.correlationId
+        });
+        continue;
+      }
+
+      const msStatus = (eventResult.status ?? '').toLowerCase();
+
+      if (msStatus === 'accepted') {
+        await this.marketplaceRepository.updateUsageEventStatus(event.id, 'submitted', {
+          message: 'Accepted by Microsoft',
+          requestId: response.requestId,
+          correlationId: response.correlationId
+        });
+      } else if (msStatus === 'duplicate') {
+        this.logger.warn(`[submitPendingUsage] Duplicate event ${event.id} — already accepted by Microsoft`);
+        await this.marketplaceRepository.updateUsageEventStatus(event.id, 'duplicate', {
+          message: 'Duplicate — already accepted by Microsoft in a prior submission',
+          requestId: response.requestId,
+          correlationId: response.correlationId
+        });
+      } else {
+        const errorDetail = eventResult.error
+          ? `${eventResult.error.code ?? 'UNKNOWN'}: ${eventResult.error.message ?? ''}`
+          : JSON.stringify(eventResult);
+        this.logger.error(`[submitPendingUsage] Microsoft rejected event ${event.id} — ${errorDetail}`);
+        await this.marketplaceRepository.updateUsageEventStatus(event.id, 'failed', {
+          message: `Microsoft rejected: ${errorDetail}`,
+          requestId: response.requestId,
+          correlationId: response.correlationId
+        });
+      }
     }
   }
 
