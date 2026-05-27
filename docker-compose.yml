@@ -8,7 +8,17 @@ x-platform-networks: &platform-networks
   - phenix-schema-file-server_default
 
 services:
+  geo-location:
+    build:
+      context: ./
+      dockerfile: Dockerfiles/Dockerfile.geolocation
+    env_file:
+      - ./.env
+    networks: *platform-networks
+
   api-gateway:
+    depends_on:
+      - geo-location
     build:
       context: ./
       dockerfile: Dockerfiles/Dockerfile.api-gateway

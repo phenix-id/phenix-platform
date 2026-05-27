@@ -953,15 +953,18 @@ export class AgentServiceService {
 
       const getApiKey = await this.getOrgAgentApiKey(orgId);
       const getOrgAgentType = await this.agentServiceRepository.getOrgAgentType(agentDetails?.orgAgentTypeId);
-
       const url = this.constructUrl(agentDetails, getOrgAgentType);
+      const didApiKey =
+        getOrgAgentType.agent === OrgAgentType.SHARED
+          ? await this.getTenantAgentApiKey(agentDetails.agentEndPoint, agentDetails.tenantId, getApiKey)
+          : getApiKey;
 
       if (createDidPayload.method === DidMethod.POLYGON) {
         createDidPayload.endpoint = agentDetails.agentEndPoint;
       }
 
       const { isPrimaryDid, ...payload } = createDidPayload;
-      const didDetails = await this.getDidDetails(url, payload, getApiKey);
+      const didDetails = await this.getDidDetails(url, payload, didApiKey);
       const getDidByOrg = await this.agentServiceRepository.getOrgDid(orgId);
 
       await this.checkDidExistence(getDidByOrg, didDetails);
@@ -1003,8 +1006,27 @@ export class AgentServiceService {
     if (getOrgAgentType.agent === OrgAgentType.DEDICATED) {
       return `${agentDetails.agentEndPoint}${CommonConstants.URL_AGENT_WRITE_DID}`;
     } else if (getOrgAgentType.agent === OrgAgentType.SHARED) {
-      return `${agentDetails.agentEndPoint}${CommonConstants.URL_SHAGENT_CREATE_DID}${agentDetails.tenantId}`;
+      return `${agentDetails.agentEndPoint}${CommonConstants.URL_AGENT_WRITE_DID}`;
     }
+  }
+
+  private async getTenantAgentApiKey(agentEndpoint: string, tenantId: string, rootApiKey: string): Promise<string> {
+    if (!tenantId) {
+      throw new NotFoundException(ResponseMessages.agent.error.apiKeyNotExist);
+    }
+
+    const tenantTokenDetails = await this.commonService.httpPost(
+      `${agentEndpoint}${CommonConstants.URL_SHAGENT_GET_TENANT_TOKEN}${tenantId}`,
+      {},
+      { headers: { authorization: rootApiKey } }
+    );
+    const tenantApiKey = tenantTokenDetails?.token;
+
+    if (!tenantApiKey) {
+      throw new NotFoundException(ResponseMessages.agent.error.apiKeyNotExist);
+    }
+
+    return tenantApiKey;
   }
 
   private async getDidDetails(url, payload, apiKey): Promise<object> {
@@ -1192,11 +1214,14 @@ export class AgentServiceService {
    */
   private async _createDID(didCreateOption): Promise<ICreateTenant> {
     const { didPayload, agentEndpoint, apiKey, tenantId } = didCreateOption;
+    const tenantApiKey =
+      didCreateOption?.tenantApiKey ??
+      (await this.getTenantAgentApiKey(agentEndpoint, tenantId, apiKey));
     // Invoke an API request from the agent to create multi-tenant agent
     const didDetails = await this.commonService.httpPost(
-      `${agentEndpoint}${CommonConstants.URL_SHAGENT_CREATE_DID}${tenantId}`,
+      `${agentEndpoint}${CommonConstants.URL_AGENT_WRITE_DID}`,
       didPayload,
-      { headers: { authorization: apiKey } }
+      { headers: { authorization: tenantApiKey } }
     );
     return didDetails;
   }
@@ -1866,9 +1891,15 @@ export class AgentServiceService {
   ): Promise<object> {
     try {
       const getApiKey = await this.getOrgAgentApiKey(orgId);
+      const agentDetails = await this.agentServiceRepository.getOrgAgentDetails(orgId);
+      const getOrgAgentType = await this.agentServiceRepository.getOrgAgentType(agentDetails?.orgAgentTypeId);
+      const invitationApiKey =
+        getOrgAgentType.agent === OrgAgentType.SHARED
+          ? await this.getTenantAgentApiKey(agentDetails.agentEndPoint, agentDetails.tenantId, getApiKey)
+          : getApiKey;
 
       const createConnectionInvitation = await this.commonService
-        .httpPost(url, connectionPayload, { headers: { authorization: getApiKey } })
+        .httpPost(url, connectionPayload, { headers: { authorization: invitationApiKey } })
         .then(async (response) => response);
       return createConnectionInvitation;
     } catch (error) {

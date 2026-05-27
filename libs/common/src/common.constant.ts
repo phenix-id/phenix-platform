@@ -17,15 +17,15 @@ export enum CommonConstants {
   // CONNECTION SERVICES
   URL_CONN_GET_CONNECTIONS = '/connections',
   URL_CONN_GET_CONNECTION_BY_ID = '/connections/#',
-  URL_CONN_CREATE_CONNECTION_INVITE = '/connections/create-invitation',
+  URL_CONN_CREATE_CONNECTION_INVITE = '/didcomm/oob/create-invitation',
   URL_CONN_RECEIVE_CONNECTION_INVITE = '/connections/receive-invitation',
   URL_CONN_ACCEPT_CONNECTION_INVITE = '/connections/#/accept-invitation',
   URL_CONN_ACCEPT_CONNECTION_REQUEST = '/connections/#/accept-request',
   URL_CONN_REMOVE_CONNECTION_BY_ID = '/connections/#/remove',
   URL_CONN_METADATA = '/connections/#/metadata',
-  URL_CONN_LEGACY_INVITE = '/oob/create-legacy-invitation',
-  URL_CONN_INVITE = '/oob/create-invitation',
-  URL_RECEIVE_INVITATION_URL = '/oob/receive-invitation-url',
+  URL_CONN_LEGACY_INVITE = '/didcomm/oob/create-legacy-connectionless-invitation',
+  URL_CONN_INVITE = '/didcomm/oob/create-invitation',
+  URL_RECEIVE_INVITATION_URL = '/didcomm/oob/receive-invitation-url',
   URL_RECEIVE_INVITATION = '/oob/receive-invitation',
   URL_CONN_INVITATION = '/url',
 
@@ -93,6 +93,7 @@ export enum CommonConstants {
 
   // SHARED AGENT
   URL_SHAGENT_CREATE_TENANT = '/multi-tenancy/create-tenant',
+  URL_SHAGENT_GET_TENANT_TOKEN = '/multi-tenancy/get-token/',
   URL_SHAGENT_CREATE_DID = '/multi-tenancy/create-did/',
   URL_SHAGENT_WITH_TENANT_AGENT = '/multi-tenancy/with-tenant-agent',
   URL_SHAGENT_CREATE_SCHEMA = '/multi-tenancy/schema/#',

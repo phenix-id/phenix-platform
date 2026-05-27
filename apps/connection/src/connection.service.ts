@@ -347,7 +347,7 @@ export class ConnectionService {
         if (orgAgentType === OrgAgentType.DEDICATED) {
           url = `${agentEndPoint}${CommonConstants.URL_CONN_INVITE}`;
         } else if (orgAgentType === OrgAgentType.SHARED) {
-          url = `${agentEndPoint}${CommonConstants.URL_SHAGENT_CREATE_CONNECTION_INVITATION}`.replace('#', tenantId);
+          url = `${agentEndPoint}${CommonConstants.URL_CONN_INVITE}`;
         } else {
           throw new NotFoundException(ResponseMessages.connection.error.agentUrlNotFound);
         }
@@ -355,7 +355,7 @@ export class ConnectionService {
         if (orgAgentType === OrgAgentType.DEDICATED) {
           url = `${agentEndPoint}${CommonConstants.URL_CONN_LEGACY_INVITE}`;
         } else if (orgAgentType === OrgAgentType.SHARED) {
-          url = `${agentEndPoint}${CommonConstants.URL_SHAGENT_CREATE_INVITATION}`.replace('#', tenantId);
+          url = `${agentEndPoint}${CommonConstants.URL_CONN_LEGACY_INVITE}`;
         } else {
           throw new NotFoundException(ResponseMessages.connection.error.agentUrlNotFound);
         }
