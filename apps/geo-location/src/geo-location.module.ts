@@ -5,9 +5,9 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { CommonModule } from '@credebl/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { getNatsOptions } from '@credebl/common/nats.config';
-import { PrismaService } from '@credebl/prisma-service';
 import { GeoLocationRepository } from './geo-location.repository';
 import { CommonConstants } from '@credebl/common/common.constant';
+import { PrismaService } from '@credebl/prisma-service';
 
 @Module({
   imports: [
