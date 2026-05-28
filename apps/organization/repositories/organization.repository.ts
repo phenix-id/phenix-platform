@@ -841,32 +841,10 @@ export class OrganizationRepository {
     deletedNotification: Prisma.BatchPayload;
     deleteOrg: IDeleteOrganization;
   }> {
-    const tablesToCheck = [
-      `${PrismaTables.ORG_AGENTS}`,
-      `${PrismaTables.ORG_DIDS}`,
-      `${PrismaTables.AGENT_INVITATIONS}`,
-      `${PrismaTables.CONNECTIONS}`,
-      `${PrismaTables.CREDENTIALS}`,
-      `${PrismaTables.PRESENTATIONS}`,
-      `${PrismaTables.ECOSYSTEM_INVITATIONS}`,
-      `${PrismaTables.ECOSYSTEM_ORGS}`,
-      `${PrismaTables.FILE_UPLOAD}`
-    ];
-
     try {
       return await this.prisma.$transaction(async (prisma) => {
-        // Check for references in all tables in parallel
-        const referenceCounts = await Promise.all(
-          tablesToCheck.map((table) => prisma[table].count({ where: { orgId: id } }))
-        );
-
-        referenceCounts.forEach((count, index) => {
-          if (0 < count) {
-            throw new ConflictException(`Organization ID ${id} is referenced in the table ${tablesToCheck[index]}`);
-          }
-        });
-
-        // Check if the organization is an ecosystem lead
+        // Block deletion if the org is an ecosystem lead — deliberate design decision,
+        // requires explicit ecosystem dissolution before the org can be removed.
         const isEcosystemLead = await prisma.ecosystem_orgs.findMany({
           where: {
             orgId: id,
@@ -880,30 +858,61 @@ export class OrganizationRepository {
           throw new ConflictException(ResponseMessages.organisation.error.organizationEcosystemValidate);
         }
 
+        // --- Auto-cleanup: delete all org-owned records in FK dependency order ---
+
+        // 1. Marketplace billing records
+        //    billing_usage_event and marketplace_usage_event both reference marketplace_subscription
+        await prisma.billing_usage_event.deleteMany({ where: { orgId: id } });
+        await prisma.marketplace_usage_event.deleteMany({ where: { orgId: id } });
+        await prisma.marketplace_subscription.deleteMany({ where: { orgId: id } });
+
+        // 2. Verification and issuance records
+        await prisma.presentations.deleteMany({ where: { orgId: id } });
+        await prisma.credentials.deleteMany({ where: { orgId: id } });
+
+        // 3. File upload records — file_data references file_upload, so delete child first
+        await prisma.file_data.deleteMany({ where: { fileUpload: { orgId: id } } });
+        await prisma.file_upload.deleteMany({ where: { orgId: id } });
+
+        // 4. Connections
+        await prisma.connections.deleteMany({ where: { orgId: id } });
+
+        // 5. Agent records — org_dids and agent_invitations both reference org_agents,
+        //    so delete them before org_agents
+        await prisma.org_dids.deleteMany({ where: { orgId: id } });
+        await prisma.agent_invitations.deleteMany({ where: { orgId: id } });
+        await prisma.org_agents.deleteMany({ where: { orgId: id } });
+
+        // 6. Ecosystem membership records
+        //    endorsement_transaction references ecosystem_orgs, so delete it first
+        const ecosystemOrgIds = (
+          await prisma.ecosystem_orgs.findMany({ where: { orgId: id }, select: { id: true } })
+        ).map((o) => o.id);
+        if (0 < ecosystemOrgIds.length) {
+          await prisma.endorsement_transaction.deleteMany({
+            where: { ecosystemOrgId: { in: ecosystemOrgIds } }
+          });
+        }
+        // ecosystem_invitations.orgId is a plain string field (no Prisma FK to organisation)
+        await prisma.ecosystem_invitations.deleteMany({ where: { orgId: id } });
+        await prisma.ecosystem_orgs.deleteMany({ where: { orgId: id } });
+
+        // 7. Standard org records
         const deletedNotification = await prisma.notification.deleteMany({ where: { orgId: id } });
-
         const deletedUserActivity = await prisma.user_activity.deleteMany({ where: { orgId: id } });
-
         const deletedUserOrgRole = await prisma.user_org_roles.deleteMany({ where: { orgId: id } });
-
         const deletedOrgInvitations = await prisma.org_invitations.deleteMany({ where: { orgId: id } });
 
-        await this.prisma.schema.updateMany({
-          where: { orgId: id },
-          data: { orgId: null }
-        });
+        // 8. Null out schema/credential_definition org references (SetNull pattern)
+        //    Use transaction-scoped prisma client to keep these inside the atomic transaction
+        await prisma.schema.updateMany({ where: { orgId: id }, data: { orgId: null } });
+        await prisma.credential_definition.updateMany({ where: { orgId: id }, data: { orgId: null } });
 
-        await this.prisma.credential_definition.updateMany({
-          where: { orgId: id },
-          data: { orgId: null }
-        });
-
-        // If no references are found, delete the organization
+        // 9. Finally delete the organisation record
         const deleteOrg = await prisma.organisation.delete({ where: { id } });
 
         return { deletedUserActivity, deletedUserOrgRole, deletedOrgInvitations, deletedNotification, deleteOrg };
       });
-      // return result;
     } catch (error) {
       this.logger.error(`Error in deleteOrg: ${error}`);
       throw error;

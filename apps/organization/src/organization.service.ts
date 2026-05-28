@@ -1571,26 +1571,6 @@ export class OrganizationService {
 
       this.logger.log('Keycloak User Ids');
 
-      // Delete user client roles in parallel
-      const deleteUserRolesPromises = keycloakUserIds.map((keycloakUserId) =>
-        this.clientRegistrationService.deleteUserClientRoles(organizationDetails?.idpId, token, keycloakUserId)
-      );
-      deleteUserRolesPromises.push(
-        this.clientRegistrationService.deleteUserClientRoles(organizationDetails?.idpId, token, getUser?.keycloakUserId)
-      );
-
-      this.logger.debug(`deleteUserRolesPromises ::: ${JSON.stringify(deleteUserRolesPromises)}`);
-
-      const deleteUserRolesResults = await Promise.allSettled(deleteUserRolesPromises);
-
-      // Check for failures in deleting user roles
-      const deletionFailures = deleteUserRolesResults.filter((result) => 'rejected' === result?.status);
-
-      if (0 < deletionFailures.length) {
-        this.logger.error(`deletionFailures ::: ${JSON.stringify(deletionFailures)}`);
-        throw new NotFoundException(ResponseMessages.organisation.error.orgDataNotFoundInkeycloak);
-      }
-
       const deletedOrgInvitationInfo: { email?: string; orgName?: string; orgRoleNames?: string[] }[] = [];
       const userIds = (await this.getUserKeycloakIdByEmail(arrayEmail)).response.map((user) => user.id);
       await Promise.all(
@@ -1627,9 +1607,28 @@ export class OrganizationService {
         })
       );
 
-      // Delete organization data
+      // Delete organization data — all FK-dependent records are auto-cleaned inside this transaction
       const { deletedUserActivity, deletedUserOrgRole, deleteOrg, deletedOrgInvitations, deletedNotification } =
         await this.organizationRepository.deleteOrg(orgId);
+
+      // Clean up Keycloak client roles after the DB transaction succeeds.
+      // This is best-effort: if Keycloak cleanup fails the org is already deleted from the DB,
+      // so we log and continue rather than throwing — orphaned Keycloak roles are harmless.
+      try {
+        const deleteUserRolesPromises = keycloakUserIds.map((keycloakUserId) =>
+          this.clientRegistrationService.deleteUserClientRoles(organizationDetails?.idpId, token, keycloakUserId)
+        );
+        deleteUserRolesPromises.push(
+          this.clientRegistrationService.deleteUserClientRoles(organizationDetails?.idpId, token, getUser?.keycloakUserId)
+        );
+        const deleteUserRolesResults = await Promise.allSettled(deleteUserRolesPromises);
+        const deletionFailures = deleteUserRolesResults.filter((result) => 'rejected' === result?.status);
+        if (0 < deletionFailures.length) {
+          this.logger.error(`[deleteOrganization] Keycloak role cleanup had failures (org already deleted): ${JSON.stringify(deletionFailures)}`);
+        }
+      } catch (keycloakError) {
+        this.logger.error(`[deleteOrganization] Keycloak cleanup failed (org already deleted): ${JSON.stringify(keycloakError)}`);
+      }
 
       this.logger.debug(`deletedUserActivity ::: ${JSON.stringify(deletedUserActivity)}`);
       this.logger.debug(`deletedUserOrgRole ::: ${JSON.stringify(deletedUserOrgRole)}`);
