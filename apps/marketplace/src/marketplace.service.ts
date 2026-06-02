@@ -128,27 +128,29 @@ export class MarketplaceService extends BaseService {
       (session.subscription.beneficiaryEmail || '').toLowerCase()
     ].filter(Boolean);
 
-    if (expectedEmails.length) {
-      if (!userEmail) {
-        this.logger.warn(
-          `Marketplace account link blocked on session ${session.id}: signed-in user has no email to verify against the purchaser/beneficiary`
-        );
-        throw new ForbiddenException({
-          code: 'marketplace_account_identity_unverified',
-          message: 'Unable to verify your account against the Microsoft Marketplace purchaser.'
-        });
-      }
+    // Fail closed: if there is no purchaser/beneficiary identity to bind to, or the
+    // signed-in user has no email, we cannot authorize the link. Absent purchaser emails
+    // indicate a bad resolution, not a reason to allow an unverified link.
+    if (!expectedEmails.length || !userEmail) {
+      this.logger.warn(
+        `Marketplace account link blocked on session ${session.id}: missing purchaser/beneficiary or signed-in email to verify against`
+      );
+      throw new ForbiddenException({
+        code: 'marketplace_account_identity_unverified',
+        message: 'Unable to verify your account against the Microsoft Marketplace purchaser.'
+      });
+    }
 
-      if (!expectedEmails.includes(userEmail)) {
-        this.logger.warn(
-          `Marketplace account link blocked on session ${session.id}: signed-in user (${userEmail}) does not match the purchaser/beneficiary`
-        );
-        throw new ForbiddenException({
-          code: 'marketplace_account_email_mismatch',
-          message:
-            'Your account email does not match the Microsoft Marketplace purchaser. Sign in with the account that purchased the subscription.'
-        });
-      }
+    if (!expectedEmails.includes(userEmail)) {
+      // Do not log the email address itself (PII); the session id is enough to investigate.
+      this.logger.warn(
+        `Marketplace account link blocked on session ${session.id}: signed-in user does not match the purchaser/beneficiary`
+      );
+      throw new ForbiddenException({
+        code: 'marketplace_account_email_mismatch',
+        message:
+          'Your account email does not match the Microsoft Marketplace purchaser. Sign in with the account that purchased the subscription.'
+      });
     }
 
     await this.marketplaceRepository.linkUser(session.subscription.id, message.user.id);
