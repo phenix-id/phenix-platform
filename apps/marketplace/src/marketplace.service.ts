@@ -1,4 +1,11 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException
+} from '@nestjs/common';
 import { ClientProxy, NatsRecordBuilder } from '@nestjs/microservices';
 import { createHash } from 'crypto';
 import { BaseService } from 'libs/service/base.service';
@@ -108,21 +115,40 @@ export class MarketplaceService extends BaseService {
   async linkAccount(message: LinkAccountMessage): Promise<object> {
     const session = await this.getValidSession(message.sessionId);
 
-    // Bind-check: the signed-in account should match the Microsoft purchaser/beneficiary.
-    // New-buyer signups lock the email to this value, so they always match; for existing
-    // users the operator email can legitimately differ, so warn rather than block.
-    const userEmail = (message.user.email || message.payload.email || '').toLowerCase();
-    const purchaserEmail = (session.subscription.purchaserEmail || '').toLowerCase();
-    const beneficiaryEmail = (session.subscription.beneficiaryEmail || '').toLowerCase();
-    if (
-      userEmail &&
-      (purchaserEmail || beneficiaryEmail) &&
-      userEmail !== purchaserEmail &&
-      userEmail !== beneficiaryEmail
-    ) {
-      this.logger.warn(
-        `Marketplace account link email mismatch on session ${session.id}: signed-in user does not match purchaser/beneficiary email`
-      );
+    // Identity bind-check: a valid onboarding sessionId must only be linked by the user
+    // who actually purchased/benefits from the subscription, otherwise any authenticated
+    // user holding a sessionId could hijack someone else's Marketplace subscription.
+    // Compare ONLY the signed-in JWT email (message.user.email) — payload.email is
+    // caller-supplied and must not influence the decision. Fail hard on mismatch.
+    // (Delegated operators with a different email are intentionally NOT supported here;
+    // that would require an explicit authorization/invite mechanism.)
+    const userEmail = (message.user.email || '').toLowerCase();
+    const expectedEmails = [
+      (session.subscription.purchaserEmail || '').toLowerCase(),
+      (session.subscription.beneficiaryEmail || '').toLowerCase()
+    ].filter(Boolean);
+
+    if (expectedEmails.length) {
+      if (!userEmail) {
+        this.logger.warn(
+          `Marketplace account link blocked on session ${session.id}: signed-in user has no email to verify against the purchaser/beneficiary`
+        );
+        throw new ForbiddenException({
+          code: 'marketplace_account_identity_unverified',
+          message: 'Unable to verify your account against the Microsoft Marketplace purchaser.'
+        });
+      }
+
+      if (!expectedEmails.includes(userEmail)) {
+        this.logger.warn(
+          `Marketplace account link blocked on session ${session.id}: signed-in user (${userEmail}) does not match the purchaser/beneficiary`
+        );
+        throw new ForbiddenException({
+          code: 'marketplace_account_email_mismatch',
+          message:
+            'Your account email does not match the Microsoft Marketplace purchaser. Sign in with the account that purchased the subscription.'
+        });
+      }
     }
 
     await this.marketplaceRepository.linkUser(session.subscription.id, message.user.id);
