@@ -107,6 +107,24 @@ export class MarketplaceService extends BaseService {
 
   async linkAccount(message: LinkAccountMessage): Promise<object> {
     const session = await this.getValidSession(message.sessionId);
+
+    // Bind-check: the signed-in account should match the Microsoft purchaser/beneficiary.
+    // New-buyer signups lock the email to this value, so they always match; for existing
+    // users the operator email can legitimately differ, so warn rather than block.
+    const userEmail = (message.user.email || message.payload.email || '').toLowerCase();
+    const purchaserEmail = (session.subscription.purchaserEmail || '').toLowerCase();
+    const beneficiaryEmail = (session.subscription.beneficiaryEmail || '').toLowerCase();
+    if (
+      userEmail &&
+      (purchaserEmail || beneficiaryEmail) &&
+      userEmail !== purchaserEmail &&
+      userEmail !== beneficiaryEmail
+    ) {
+      this.logger.warn(
+        `Marketplace account link email mismatch on session ${session.id}: signed-in user does not match purchaser/beneficiary email`
+      );
+    }
+
     await this.marketplaceRepository.linkUser(session.subscription.id, message.user.id);
     await this.marketplaceRepository.updateOnboardingSession(session.id, 'account_linked', {
       mode: message.payload.mode,
