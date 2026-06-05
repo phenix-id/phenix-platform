@@ -61,6 +61,31 @@ export class MarketplaceRepository {
     });
   }
 
+  // Returns a subscription (other than `exceptSubscriptionId`) that still "occupies" the org
+  // for linking purposes, or null if none. A cancelled (Unsubscribed) subscription is
+  // excluded so a buyer who cancels and then re-subscribes can re-link the same organization
+  // to the new subscription. A live subscription (PendingFulfillmentStart / Subscribed /
+  // Suspended) still occupies the org — Suspended is resolved via Reinstate, not by linking a
+  // parallel subscription.
+  //
+  // We exclude the current subscription in the query (rather than fetching one row and
+  // comparing in the caller) so that a pre-existing *older* active row is still detected even
+  // when the most-recent row for the org is the current session's own subscription.
+  async getActiveSubscriptionByOrgId(
+    orgId: string,
+    exceptSubscriptionId?: string
+  ): Promise<Prisma.marketplace_subscriptionGetPayload<{}> | null> {
+    return this.prisma.marketplace_subscription.findFirst({
+      where: {
+        orgId,
+        deletedAt: null,
+        saasSubscriptionStatus: { not: MarketplaceSubscriptionStatus.Unsubscribed },
+        ...(exceptSubscriptionId ? { id: { not: exceptSubscriptionId } } : {})
+      },
+      orderBy: { createDateTime: 'desc' }
+    });
+  }
+
   async listActiveSubscriptions(): Promise<Prisma.marketplace_subscriptionGetPayload<{}>[]> {
     return this.prisma.marketplace_subscription.findMany({
       where: { deletedAt: null, saasSubscriptionStatus: 'Subscribed' }
