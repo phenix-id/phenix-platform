@@ -50,7 +50,6 @@ import {
   AgentHealthData,
   IAgentStore,
   IAgentConfigure,
-  OrgDid,
   IBasicMessage,
   WalletDetails,
   ILedger,
@@ -869,12 +868,15 @@ export class AgentServiceService {
     try {
       const agentDetails = await this.agentServiceRepository.getOrgAgentDetails(orgId);
 
+      // Look up the ledger for the requested network once and reuse it for both the network
+      // validation here and the primary-DID ledger update below (avoids a duplicate DB read and
+      // keeps validation and the update based on the same ledger row).
+      let networkLedgerId: string | null = null;
       if (createDidPayload?.network) {
         const getNameSpace = await this.agentServiceRepository.getLedgerByNameSpace(createDidPayload?.network);
-        if (agentDetails.ledgerId !== null) {
-          if (agentDetails.ledgerId !== getNameSpace.id) {
-            throw new BadRequestException(ResponseMessages.agent.error.networkMismatch);
-          }
+        networkLedgerId = getNameSpace.id;
+        if (agentDetails.ledgerId !== null && agentDetails.ledgerId !== getNameSpace.id) {
+          throw new BadRequestException(ResponseMessages.agent.error.networkMismatch);
         }
       }
       const getApiKey = await this.getOrgAgentApiKey(orgId);
@@ -886,29 +888,59 @@ export class AgentServiceService {
 
       const { isPrimaryDid, ...payload } = createDidPayload;
       const didDetails = await this.getDidDetails(url, payload, getApiKey);
+
+      // Normalize the DID/document once from the agent-controller response. Polygon only returns the
+      // DID under didState.did, so both the duplicate/retry detection and the persisted row must use
+      // the same normalized value - otherwise a retry would not recognise an already-stored DID.
+      const did = didDetails?.['did'] ?? didDetails?.['didState']?.['did'];
+      const didDocument =
+        didDetails?.['didDocument'] ?? didDetails?.['didDoc'] ?? didDetails?.['didState']?.['didDocument'];
+
+      // A matching row means a prior attempt already stored this DID. Rather than failing the retry
+      // with a conflict, reconcile it: persistDidWithUpdates finishes the related org_agents/spin-up
+      // updates that the earlier run may have failed to commit.
       const getDidByOrg = await this.agentServiceRepository.getOrgDid(orgId);
-
-      await this.checkDidExistence(getDidByOrg, didDetails);
-
-      if (isPrimaryDid) {
-        await this.updateAllDidsToNonPrimary(orgId, getDidByOrg);
-      }
+      const existingDid = getDidByOrg.find((orgDid) => orgDid.did === did) ?? null;
 
       const createdDidDetails = {
         orgId,
-        did: didDetails?.['did'] ?? didDetails?.['didState']?.['did'],
-        didDocument: didDetails?.['didDocument'] ?? didDetails?.['didDoc'] ?? didDetails?.['didState']?.['didDocument'],
+        did,
+        didDocument,
         isPrimaryDid,
         orgAgentId: agentDetails.id,
         userId: user.id
       };
-      const storeDidDetails = await this.storeDid(createdDidDetails);
 
+      // Resolve the ledger id (read-only lookup + validation) BEFORE the transaction, so the
+      // transaction body performs only writes and is never held open across reads/HTTP calls.
+      let ledgerId: string | null = null;
       if (isPrimaryDid) {
-        await this.setPrimaryDidAndLedger(orgId, storeDidDetails, createDidPayload.network, createDidPayload.method);
+        if (createDidPayload.network) {
+          ledgerId = networkLedgerId;
+        } else {
+          const noLedgerData = await this.agentServiceRepository.getLedger(Ledgers.Not_Applicable);
+          if (!noLedgerData) {
+            throw new NotFoundException(ResponseMessages.agent.error.noLedgerFound);
+          }
+          ledgerId = noLedgerData.id;
+        }
       }
-      if (agentDetails.agentSpinUpStatus === AgentSpinUpStatus.WALLET_CREATED) {
-        await this.agentServiceRepository.updateAgentSpinupStatus(orgId);
+
+      // Persist the new DID (or reconcile an existing one) together with all related org_agents
+      // updates atomically. Previously these ran as separate, non-transactional writes, so a failure
+      // after the blockchain write could leave a half-written DB state that a retry could not repair.
+      const storeDidDetails = await this.agentServiceRepository.persistDidWithUpdates({
+        createdDidDetails,
+        existingDid,
+        ledgerId,
+        updateSpinupStatus: agentDetails.agentSpinUpStatus === AgentSpinUpStatus.WALLET_CREATED
+      });
+
+      if (!storeDidDetails) {
+        throw new InternalServerErrorException(ResponseMessages.agent.error.storeDid, {
+          cause: new Error(),
+          description: ResponseMessages.errorMessages.serverError
+        });
       }
 
       return storeDidDetails;
@@ -943,54 +975,6 @@ export class AgentServiceService {
     }
 
     return didDetails;
-  }
-
-  private checkDidExistence(getDidByOrg, didDetails): void {
-    const didExist = getDidByOrg.some((orgDidExist) => orgDidExist.did === didDetails.did);
-    if (didExist) {
-      throw new ConflictException(ResponseMessages.agent.error.didAlreadyExist, {
-        cause: new Error(),
-        description: ResponseMessages.errorMessages.serverError
-      });
-    }
-  }
-
-  private async updateAllDidsToNonPrimary(orgId, getDidByOrg): Promise<void> {
-    await Promise.all(
-      getDidByOrg.map(async () => {
-        await this.agentServiceRepository.updateIsPrimaryDid(orgId, false);
-      })
-    );
-  }
-
-  private async storeDid(createdDidDetails): Promise<OrgDid> {
-    const storeDidDetails = await this.agentServiceRepository.storeDidDetails(createdDidDetails);
-
-    if (!storeDidDetails) {
-      throw new InternalServerErrorException(ResponseMessages.agent.error.storeDid, {
-        cause: new Error(),
-        description: ResponseMessages.errorMessages.serverError
-      });
-    }
-
-    return storeDidDetails;
-  }
-
-  private async setPrimaryDidAndLedger(orgId, storeDidDetails, network, method): Promise<void> {
-    if (storeDidDetails.did && storeDidDetails.didDocument) {
-      await this.agentServiceRepository.setPrimaryDid(storeDidDetails.did, orgId, storeDidDetails.didDocument);
-    }
-
-    if (network) {
-      const getLedgerDetails = await this.agentServiceRepository.getLedgerByNameSpace(network);
-      await this.agentServiceRepository.updateLedgerId(orgId, getLedgerDetails.id);
-    } else {
-      const noLedgerData = await this.agentServiceRepository.getLedger(Ledgers.Not_Applicable);
-      if (!noLedgerData) {
-        throw new NotFoundException(ResponseMessages.agent.error.noLedgerFound);
-      }
-      await this.agentServiceRepository.updateLedgerId(orgId, noLedgerData?.id);
-    }
   }
 
   /**
