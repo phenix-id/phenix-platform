@@ -143,6 +143,23 @@ export class UserService {
       if (process.env.ADMIN_CLIENT_ALIAS === clientAlias) {
         throw new ForbiddenException(ResponseMessages.user.error.adminAlias);
       }
+
+      // Invited users arrive via an invitation link delivered to their inbox, which already
+      // proves they control this email (the gateway has validated the invitation is pending
+      // and belongs to it before forwarding the id). Create the account already verified and
+      // skip the redundant verification-code email.
+      if (invitationId) {
+        userEmailVerification.username = await this.createUsername(email, verifyCode);
+        userEmailVerification.clientId = clientDetails.clientId;
+        userEmailVerification.clientSecret = clientDetails.clientSecret;
+        const resUser = await this.userRepository.createUser(userEmailVerification, verifyCode);
+        await this.userRepository.verifyUser(email);
+        // Reflect the just-applied verification on the returned record so callers (and the
+        // gateway response) see the verified state without an extra read.
+        resUser.isEmailVerified = true;
+        return resUser;
+      }
+
       try {
         const token = await this.clientRegistrationService.getManagementToken(
           clientDetails.clientId,
