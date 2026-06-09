@@ -895,6 +895,20 @@ export class OrganizationService {
    * @param email
    * @returns
    */
+  async verifyInvitationPending(invitationId: string, email: string): Promise<{ valid: boolean }> {
+    try {
+      const invitation = await this.organizationRepository.getInvitationById(invitationId);
+      const valid =
+        Boolean(invitation) &&
+        invitation.status === Invitation.PENDING &&
+        invitation.email?.toLowerCase() === email.toLowerCase();
+      return { valid };
+    } catch (error) {
+      this.logger.error(`error in verifyInvitationPending: ${JSON.stringify(error)}`);
+      return { valid: false };
+    }
+  }
+
   async checkInvitationExist(email: string, orgId: string): Promise<boolean> {
     try {
       const query = {
@@ -952,10 +966,22 @@ export class OrganizationService {
       const isInvitationExist = await this.checkInvitationExist(email, orgId);
 
       if (!isInvitationExist && userEmail !== invitation.email) {
-        await this.organizationRepository.createSendInvitation(email, String(orgId), String(userId), orgRoleId);
+        const createdInvitation = await this.organizationRepository.createSendInvitation(
+          email,
+          String(orgId),
+          String(userId),
+          orgRoleId
+        );
 
         try {
-          await this.sendInviteEmailTemplate(email, orgName, orgRolesDetails, firstName, isUserExist);
+          await this.sendInviteEmailTemplate(
+            email,
+            orgName,
+            orgRolesDetails,
+            firstName,
+            isUserExist,
+            createdInvitation.id
+          );
         } catch (error) {
           throw new InternalServerErrorException(ResponseMessages.user.error.emailSend);
         }
@@ -1002,7 +1028,7 @@ export class OrganizationService {
       const isInvitationExist = await this.checkInvitationExist(email, orgId);
 
       if (!isInvitationExist && userEmail !== invitation.email) {
-        await this.organizationRepository.createSendInvitation(
+        const createdInvitation = await this.organizationRepository.createSendInvitation(
           email,
           String(orgId),
           String(userId),
@@ -1010,7 +1036,14 @@ export class OrganizationService {
         );
 
         try {
-          await this.sendInviteEmailTemplate(email, orgName, filteredOrgRoles, firstName, isUserExist);
+          await this.sendInviteEmailTemplate(
+            email,
+            orgName,
+            filteredOrgRoles,
+            firstName,
+            isUserExist,
+            createdInvitation.id
+          );
         } catch (error) {
           throw new InternalServerErrorException(ResponseMessages.user.error.emailSend);
         }
@@ -1074,7 +1107,8 @@ export class OrganizationService {
     orgName: string,
     orgRolesDetails: object[],
     firstName: string,
-    isUserExist: boolean
+    isUserExist: boolean,
+    invitationId?: string
   ): Promise<boolean> {
     const platformConfigData = await this.prisma.platform_config.findMany();
 
@@ -1089,7 +1123,8 @@ export class OrganizationService {
       orgName,
       orgRolesDetails,
       firstName,
-      isUserExist
+      isUserExist,
+      invitationId
     );
 
     //Email is sent to user for the verification through emailData

@@ -56,6 +56,7 @@ import { GetAllOrganizationsDto } from './dtos/get-organizations.dto';
 import { PrimaryDid } from './dtos/set-primary-did.dto';
 import { TrimStringParamPipe } from '@credebl/common/cast.helper';
 import { ClientTokenDto } from './dtos/client-token.dto';
+import { VerifyInvitationPendingQueryDto } from './dtos/verify-invitation-pending-query.dto';
 import { EcosystemRolesGuard } from '../authz/guards/ecosystem-roles.guard';
 import { TrustServiceRoleGuard } from '../authz/guards/trust-service-role.guard';
 
@@ -254,6 +255,29 @@ export class OrganizationController {
     };
     return res.status(HttpStatus.OK).json(finalResponse);
   }
+  /**
+   * Check whether an org invitation is still pending and matches the given email.
+   * Public — no auth required; called by the sign-up page before showing the form.
+   */
+  @Get('/invitations/verify-pending')
+  @ApiOperation({
+    summary: 'Verify a pending invitation',
+    description:
+      'Returns whether the invitation exists, is pending, and matches the given email. No authentication required.'
+  })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Success', type: ApiResponseDto })
+  async verifyInvitationPending(
+    @Query() query: VerifyInvitationPendingQueryDto,
+    @Res() res: Response
+  ): Promise<Response> {
+    const result = await this.organizationService.verifyInvitationPending(query.invitationId, query.email);
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      message: ResponseMessages.organisation.success.getInvitation,
+      data: result
+    });
+  }
+
   /**
    * Get all invitations
    * @param orgId The ID of the organization
