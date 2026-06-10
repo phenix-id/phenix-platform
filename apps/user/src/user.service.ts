@@ -152,11 +152,10 @@ export class UserService {
         userEmailVerification.username = await this.createUsername(email, verifyCode);
         userEmailVerification.clientId = clientDetails.clientId;
         userEmailVerification.clientSecret = clientDetails.clientSecret;
-        const resUser = await this.userRepository.createUser(userEmailVerification, verifyCode);
-        await this.userRepository.verifyUser(email);
-        // Reflect the just-applied verification on the returned record so callers (and the
-        // gateway response) see the verified state without an extra read.
-        resUser.isEmailVerified = true;
+        // Single atomic write: create the account already verified. Avoids the
+        // create-then-verify window where a failed second write would leave an
+        // unverified account the user can no longer retry past.
+        const resUser = await this.userRepository.createUser(userEmailVerification, verifyCode, true);
         return resUser;
       }
 
