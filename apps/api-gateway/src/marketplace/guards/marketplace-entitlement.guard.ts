@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger }
 import { Reflector } from '@nestjs/core';
 import { MARKETPLACE_FEATURE_KEY, MarketplaceFeature } from '../decorators/requires-marketplace-feature.decorator';
 import { MarketplaceService } from '../marketplace.service';
+import { isPlatformAdmin } from '../utils/platform-admin.util';
 
 interface EntitlementResponse {
   features?: Record<string, boolean>;
@@ -30,18 +31,23 @@ export class MarketplaceEntitlementGuard implements CanActivate {
 
     // When marketplace billing is globally disabled, do not enforce entitlements and
     // do not couple core SSI flows to the availability of the marketplace microservice.
-    if (`${process.env.MARKETPLACE_ENABLED}`.toLowerCase() !== 'true') {
+    if ('true' !== `${process.env.MARKETPLACE_ENABLED}`.toLowerCase()) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest();
+
+    if (isPlatformAdmin(request.user)) {
+      return true;
+    }
+
     const orgId = this.getOrgId(request);
 
     if (!orgId) {
       return true;
     }
 
-    const marketplaceRequired = `${process.env.MARKETPLACE_REQUIRED}`.toLowerCase() === 'true';
+    const marketplaceRequired = 'true' === `${process.env.MARKETPLACE_REQUIRED}`.toLowerCase();
 
     let entitlements: EntitlementResponse;
     try {
@@ -63,13 +69,16 @@ export class MarketplaceEntitlementGuard implements CanActivate {
     }
 
     if (entitlements.features?.[feature]) {
-      if (feature === 'schemaCreate' && this.isUsageLimitReached(entitlements, 'schema_create')) {
+      if ('schemaCreate' === feature && this.isUsageLimitReached(entitlements, 'schema_create')) {
         throw new ForbiddenException({
           code: 'marketplace_schema_limit_reached',
           message: 'Marketplace schema creation limit has been reached for this plan'
         });
       }
-      if (('issuance' === feature || 'bulkIssuance' === feature) && this.isUsageLimitReached(entitlements, 'issuance_txn')) {
+      if (
+        ('issuance' === feature || 'bulkIssuance' === feature) &&
+        this.isUsageLimitReached(entitlements, 'issuance_txn')
+      ) {
         throw new ForbiddenException({
           code: 'marketplace_issuance_limit_reached',
           message: 'Marketplace issuance transaction limit has been reached for this plan'
@@ -92,7 +101,7 @@ export class MarketplaceEntitlementGuard implements CanActivate {
 
   private isUsageLimitReached(entitlements: EntitlementResponse, dimension: string): boolean {
     const usage = entitlements.usage?.[dimension];
-    if (!usage || usage.included === null || usage.included === undefined) {
+    if (!usage || null === usage.included || usage.included === undefined) {
       return false;
     }
 

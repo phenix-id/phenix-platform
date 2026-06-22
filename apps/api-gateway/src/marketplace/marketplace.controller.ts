@@ -6,6 +6,7 @@ import { user } from '@prisma/client';
 import { IResponse } from '@credebl/common/interfaces/response.interface';
 import { User } from '../authz/decorators/user.decorator';
 import { MarketplaceService } from './marketplace.service';
+import { isPlatformAdmin, PLATFORM_ADMIN_ENTITLEMENTS } from './utils/platform-admin.util';
 import {
   ActivateMarketplaceDto,
   LinkMarketplaceAccountDto,
@@ -123,6 +124,12 @@ export class MarketplaceController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   async getEntitlements(@Param('orgId') orgId: string, @User() reqUser: user, @Res() res: Response): Promise<Response> {
+    if (isPlatformAdmin(reqUser)) {
+      const data = { orgId, ...PLATFORM_ADMIN_ENTITLEMENTS };
+      const finalResponse: IResponse = { statusCode: HttpStatus.OK, message: 'Success', data };
+      return res.status(HttpStatus.OK).json(finalResponse);
+    }
+
     const data = await this.marketplaceService.getEntitlements(orgId, reqUser.id);
     const finalResponse: IResponse = { statusCode: HttpStatus.OK, message: 'Success', data };
     return res.status(HttpStatus.OK).json(finalResponse);
