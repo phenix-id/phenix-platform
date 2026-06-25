@@ -27,7 +27,6 @@ import { MeteringService } from './services/metering.service';
 import { MicrosoftMarketplaceClient } from './services/microsoft-marketplace.client';
 import { WebhookService } from './services/webhook.service';
 
-const SETUP_FEE_USD = 30000;
 
 interface LinkAccountMessage {
   sessionId: string;
@@ -167,9 +166,9 @@ export class MarketplaceService extends BaseService {
     // The onboarding session must already be account-linked to the signed-in user before
     // an org can be attached. getValidSession only checks expiry, so without this guard a
     // caller holding a valid sessionId could skip linkAccount and bind someone else's
-    // subscription (its entitlements + setup-fee billing) to an org they own. linkAccount
-    // sets subscription.localUserId only after verifying the Marketplace purchaser, so
-    // that binding is the authoritative session-owner check here. Fail hard otherwise.
+    // subscription to an org they own. linkAccount sets subscription.localUserId only after
+    // verifying the Marketplace purchaser, so that binding is the authoritative session-owner
+    // check here. Fail hard otherwise.
     this.assertSessionAccountLinkedTo(session, message.user.id);
 
     if (message.payload.mode === 'link_existing') {
@@ -177,8 +176,8 @@ export class MarketplaceService extends BaseService {
         throw new BadRequestException('orgId is required when linking an existing organization');
       }
 
-      // A linked session lets a buyer attach this subscription (and its entitlements +
-      // setup-fee billing) to an org. Only the org owner may do that, otherwise any
+      // A linked session lets a buyer attach this subscription (and its entitlements)
+      // to an org. Only the org owner may do that, otherwise any
       // account-linked buyer could attach their subscription to an organization they do
       // not own. Verified over NATS against the organization service (source of truth).
       await this.assertUserOwnsOrganization(message.user.id, message.payload.orgId);
@@ -224,9 +223,9 @@ export class MarketplaceService extends BaseService {
   async activateSubscription(message: { sessionId: string; orgId: string; userId: string }): Promise<object> {
     const session = await this.getValidSession(message.sessionId);
 
-    // Same session-owner guard as linkOrganization: getValidSession only checks expiry, and
-    // activation records setup-fee billing, so a bare sessionId must not let a caller activate
-    // (and bill) a subscription that was not account-linked to them.
+    // Same session-owner guard as linkOrganization: getValidSession only checks expiry, so
+    // a bare sessionId must not let a caller activate a subscription that was not
+    // account-linked to them.
     this.assertSessionAccountLinkedTo(session, message.userId);
 
     if (session.subscription.orgId !== message.orgId) {
@@ -236,7 +235,6 @@ export class MarketplaceService extends BaseService {
     if (session.subscription.saasSubscriptionStatus === 'Subscribed') {
       await this.marketplaceRepository.setActivationStatus(session.subscription.id, 'activated');
       await this.marketplaceRepository.updateOnboardingSession(session.id, 'activated');
-      await this.recordSetupFeeUsage(session.subscription, message.orgId);
       return {
         subscriptionId: session.subscription.marketplaceSubscriptionId,
         orgId: message.orgId,
@@ -253,7 +251,6 @@ export class MarketplaceService extends BaseService {
         await this.marketplaceRepository.setSubscriptionStatus(session.subscription.id, 'Subscribed');
         await this.marketplaceRepository.setActivationStatus(session.subscription.id, 'activated');
         await this.marketplaceRepository.updateOnboardingSession(session.id, 'activated');
-        await this.recordSetupFeeUsage(session.subscription, message.orgId);
         return {
           subscriptionId: session.subscription.marketplaceSubscriptionId,
           orgId: message.orgId,
@@ -275,7 +272,6 @@ export class MarketplaceService extends BaseService {
       // status on the next hourly run.
       await this.marketplaceRepository.setActivationStatus(session.subscription.id, 'activated');
       await this.marketplaceRepository.updateOnboardingSession(session.id, 'activated');
-      await this.recordSetupFeeUsage(session.subscription, message.orgId);
 
       // Best-effort refresh of term dates — do not let a getSubscription failure
       // roll back the activation that MS already confirmed.
@@ -557,28 +553,10 @@ export class MarketplaceService extends BaseService {
 
   private displayNameForDimension(dimension: string): string {
     const displayNames = {
-      setup_fee: 'One-time setup fee',
       issuance_txn: 'Credential issuance',
       verification_txn: 'Credential verification',
       schema_create: 'Schema creation'
     };
     return displayNames[dimension] || dimension;
-  }
-
-  private async recordSetupFeeUsage(subscription, orgId: string): Promise<void> {
-    await this.marketplaceRepository.recordBillingUsageEvent(
-      {
-        orgId,
-        eventType: 'organization_setup_completed',
-        sourceTable: 'marketplace_subscription',
-        sourceId: subscription.id,
-        quantity: 1,
-        metadata: {
-          dimension: 'setup_fee',
-          unitPriceUsd: SETUP_FEE_USD
-        }
-      },
-      subscription.id
-    );
   }
 }

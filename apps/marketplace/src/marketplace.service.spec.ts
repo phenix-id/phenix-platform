@@ -136,9 +136,8 @@ describe('MarketplaceService.linkOrganization (link_existing)', () => {
 });
 
 /**
- * The activation step records setup-fee billing, so it carries the same session-owner risk
- * as linkOrganization: a bare sessionId must not let a caller activate a subscription that
- * was not account-linked to them.
+ * The activation step carries the same session-owner risk as linkOrganization: a bare
+ * sessionId must not let a caller activate a subscription that was not account-linked to them.
  */
 describe('MarketplaceService.activateSubscription (session-owner guard)', () => {
   const sessionId = 'session-1';

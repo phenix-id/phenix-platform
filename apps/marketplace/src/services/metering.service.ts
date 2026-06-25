@@ -5,7 +5,6 @@ import { MarketplaceRepository } from '../repositories/marketplace.repository';
 import { MicrosoftMarketplaceClient } from './microsoft-marketplace.client';
 
 const dimensionByEventType: Record<string, string> = {
-  organization_setup_completed: 'setup_fee',
   issuance_completed: 'issuance_txn',
   verification_completed: 'verification_txn',
   schema_created: 'schema_create'
@@ -160,7 +159,6 @@ export class MeteringService {
 
   private includedUsage(plan: marketplace_plan | null): Record<string, number> {
     return {
-      setup_fee: 0,
       issuance_txn: plan?.includedIssuanceTransactions || 0,
       verification_txn: plan?.includedVerificationTransactions || 0,
       schema_create: plan?.includedSchemas || 0

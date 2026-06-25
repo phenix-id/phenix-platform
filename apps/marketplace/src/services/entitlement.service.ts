@@ -13,7 +13,6 @@ const defaultFeatures: Record<string, boolean> = {
 };
 
 const eventTypeByDimension: Record<string, string> = {
-  setup_fee: 'organization_setup_completed',
   issuance_txn: 'issuance_completed',
   verification_txn: 'verification_completed',
   schema_create: 'schema_created'
@@ -129,7 +128,6 @@ export class EntitlementService {
     }
 
     const includedByDimension: Record<string, number> = {
-      setup_fee: 0,
       issuance_txn: plan.includedIssuanceTransactions,
       verification_txn: plan.includedVerificationTransactions,
       schema_create: plan.includedSchemas
