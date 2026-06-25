@@ -128,10 +128,19 @@ export class UserService {
       const userDetails = await this.userRepository.checkUserExist(email);
 
       if (userDetails) {
-        if (userDetails.isEmailVerified) {
-          throw new ConflictException(ResponseMessages.user.error.exists);
-        } else {
-          throw new ConflictException(ResponseMessages.user.error.verificationAlreadySent);
+        // An invited user (invitationId already validated by the gateway against a pending
+        // invitation for this email) may have a pre-created, verified-but-unregistered
+        // account — either from starting signup earlier or from a prior/re-sent invite.
+        // Such an account has neither a Keycloak nor a Supabase identity yet, so let them
+        // resume the invited flow below instead of dead-ending on a conflict. Fully-registered
+        // accounts (either identity set) still block — matches checkUserExist's "exists" rule.
+        const isInvitedResume = Boolean(invitationId) && !userDetails.keycloakUserId && !userDetails.supabaseUserId;
+        if (!isInvitedResume) {
+          if (userDetails.isEmailVerified) {
+            throw new ConflictException(ResponseMessages.user.error.exists);
+          } else {
+            throw new ConflictException(ResponseMessages.user.error.verificationAlreadySent);
+          }
         }
       }
 

@@ -1150,7 +1150,13 @@ export class OrganizationService {
           error.status
         );
       });
-    if (userData?.isEmailVerified) {
+    // A user pre-created via the invite link is verified but not yet registered
+    // (no keycloakUserId/supabaseUserId until /signup completes). Only treat fully-registered
+    // users as "existing" so half-onboarded invitees still get the /sign-up?invitationId
+    // link, which bypasses the marketplace gate via verify-pending instead of being sent
+    // to /sign-in with no usable login. "Registered" mirrors checkUserExist (user service):
+    // a usable login exists when either the Keycloak or Supabase identity is set.
+    if (userData?.isEmailVerified && (userData?.keycloakUserId || userData?.supabaseUserId)) {
       return true;
     }
     return false;
